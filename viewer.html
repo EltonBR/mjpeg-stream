@@ -147,7 +147,10 @@
       const host = String(data.get('host') || '127.0.0.1').trim();
       const port = String(data.get('port') || '8080').trim();
       const path = normalizePath(String(data.get('path') || '/').trim());
-      return `http://${host}:${port}${path}`;
+      const urlHost = host.includes(':') && !host.startsWith('[')
+        ? `[${host}]`
+        : host;
+      return `http://${urlHost}:${port}${path}`;
     }
 
     function applyZoom() {

@@ -65,6 +65,8 @@ quality=80
 # Opcional. Sem allow, todos os clientes TCP/HTTP sao permitidos.
 allow=192.168.0.10
 allow=10.0.0.0/24
+allow=::1
+allow=2001:db8::/32
 ```
 
 ### rx.ini
@@ -102,6 +104,7 @@ Abrir no navegador:
 
 ```text
 http://127.0.0.1:8080/
+http://[::1]:8080/
 ```
 
 Tambem ha uma pagina local:
@@ -119,11 +122,25 @@ TCP binario com receptor GTK:
 ./mjpeg_rx --tcp --host 127.0.0.1 --port 5000
 ```
 
+TCP via IPv6:
+
+```sh
+./mjpeg_tx --tcp --host :: --port 5000
+./mjpeg_rx --tcp --host ::1 --port 5000
+```
+
 UDP:
 
 ```sh
 ./mjpeg_rx --udp --listen 0.0.0.0 --port 5000
 ./mjpeg_tx --udp --host 127.0.0.1 --port 5000
+```
+
+UDP via IPv6:
+
+```sh
+./mjpeg_rx --udp --listen :: --port 5000
+./mjpeg_tx --udp --host ::1 --port 5000
 ```
 
 Scripts:
@@ -153,19 +170,23 @@ Formatos:
 - `allow=192.168.0.10`
 - `allow=192.168.0.20-192.168.0.30`
 - `allow=10.0.0.0/24`
+- `allow=::1`
+- `allow=2001:db8::/32`
+- `allow=2001:db8::1-2001:db8::ffff`
 
 Via CLI:
 
 ```sh
 ./mjpeg_tx --http --port 8080 \
   --allow 192.168.0.10 \
-  --allow 10.0.0.0/24
+  --allow 10.0.0.0/24 \
+  --allow 2001:db8::/32
 ```
 
 Via script:
 
 ```sh
-ALLOW="192.168.0.10,10.0.0.0/24" ./start_transmitter.sh
+ALLOW="192.168.0.10,10.0.0.0/24,2001:db8::/32" ./start_transmitter.sh
 ```
 
 ## Eventos do receptor
@@ -199,7 +220,9 @@ O socket de eventos permanece ativo enquanto o receptor estiver aberto. Se a con
 
 ## Observacoes
 
-- Enderecos de rede devem ser IPv4 literal: `127.0.0.1`, `0.0.0.0`, `192.168.x.x`. Hostnames como `localhost` nao sao aceitos.
+- Enderecos de rede devem ser IP literal IPv4 ou IPv6: `127.0.0.1`, `0.0.0.0`, `::1`, `::`, `192.168.x.x`, `2001:db8::1`. Hostnames como `localhost` nao sao aceitos.
+- Em URLs HTTP, IPv6 deve usar colchetes: `http://[::1]:8080/`.
+- Em servidores TCP/HTTP/UDP, `--host ::` ou `--listen ::` tenta aceitar IPv6 e IPv4 no mesmo socket quando o sistema permite dual-stack.
 - O transmissor tenta `MJPEG` nativo primeiro e envia o JPEG da camera sem recompressao.
 - Se `MJPEG` nao estiver disponivel, tenta `RGB24` e depois `YUYV`; nesses casos usa libjpeg.
 - `quality` so afeta o fallback com codificacao via libjpeg. Em MJPEG nativo, a qualidade depende da camera/driver.
@@ -211,7 +234,7 @@ O socket de eventos permanece ativo enquanto o receptor estiver aberto. Se a con
 - `mjpeg_tx` e `v4l2_discover` sao os binarios mais adequados para embarcados.
 - Cameras USB com MJPEG nativo reduzem bastante CPU e memoria, porque o transmissor nao recomprime frames.
 - `mjpeg_rx` depende de GTK/GdkPixbuf e e mais adequado para desktop.
-- A rede usa IPv4 literal e nao usa `getaddrinfo`, evitando dependencia de NSS/DNS da glibc no transmissor estatico.
+- A rede usa IP literal IPv4/IPv6 e nao usa `getaddrinfo`, evitando dependencia de NSS/DNS da glibc no transmissor estatico.
 - Para cross-compiling, sobrescreva `CC` conforme a toolchain:
 
 ```sh

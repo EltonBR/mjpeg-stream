@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <netinet/in.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -107,6 +108,25 @@ static void remove_client(struct stream_server *server, int index)
     server->client_count--;
 }
 
+static const char *format_peer_ip(const struct sockaddr *addr, char *buf,
+                                  size_t buf_len)
+{
+    const void *src = NULL;
+
+    if (addr->sa_family == AF_INET) {
+        const struct sockaddr_in *addr4 = (const struct sockaddr_in *)addr;
+        src = &addr4->sin_addr;
+    } else if (addr->sa_family == AF_INET6) {
+        const struct sockaddr_in6 *addr6 = (const struct sockaddr_in6 *)addr;
+        src = &addr6->sin6_addr;
+    }
+
+    if (!src || !inet_ntop(addr->sa_family, src, buf, (socklen_t)buf_len)) {
+        strcpy(buf, "desconhecido");
+    }
+    return buf;
+}
+
 static int send_udp_frame(int fd, const unsigned char *jpeg, unsigned long len,
                           unsigned int frame_id)
 {
@@ -182,7 +202,7 @@ int stream_wait_fd(const struct stream_server *server)
 void stream_accept_pending(struct stream_server *server)
 {
     while (server->client_count < MAX_STREAM_CLIENTS) {
-        struct sockaddr_in addr;
+        struct sockaddr_storage addr;
         socklen_t addr_len = sizeof(addr);
         int fd = accept(server->fd, (struct sockaddr *)&addr, &addr_len);
         if (fd < 0) {
@@ -192,12 +212,10 @@ void stream_accept_pending(struct stream_server *server)
             return;
         }
 
-        if (addr.sin_family == AF_INET &&
-            !access_control_allowed(server->access, ntohl(addr.sin_addr.s_addr))) {
-            char ip[INET_ADDRSTRLEN];
-            if (!inet_ntop(AF_INET, &addr.sin_addr, ip, sizeof(ip))) {
-                strcpy(ip, "desconhecido");
-            }
+        if (!access_control_allowed_sockaddr(server->access,
+                                             (struct sockaddr *)&addr)) {
+            char ip[INET6_ADDRSTRLEN];
+            (void)format_peer_ip((struct sockaddr *)&addr, ip, sizeof(ip));
             fprintf(stderr, "cliente %s rejeitado por controle de acesso\n", ip);
             close(fd);
             continue;

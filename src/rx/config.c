@@ -66,9 +66,9 @@ static int rx_ini_handler(void *user, const char *section,
 void rx_usage(const char *argv0)
 {
     fprintf(stderr,
-            "Uso TCP: %s [--config rx.ini] --host 127.0.0.1 --port 5000 --tcp\n"
-            "Uso UDP: %s --listen 0.0.0.0 --port 5000 --udp\n"
-            "Eventos: --event-host 127.0.0.1 --event-port 6000 [--joystick /dev/input/js0]\n",
+            "Uso TCP: %s [--config rx.ini] --host 127.0.0.1|::1 --port 5000 --tcp\n"
+            "Uso UDP: %s --listen 0.0.0.0|:: --port 5000 --udp\n"
+            "Eventos: --event-host 127.0.0.1|::1 --event-port 6000 [--joystick /dev/input/js0]\n",
             argv0, argv0);
 }
 
