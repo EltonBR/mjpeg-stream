@@ -1,45 +1,75 @@
 #!/bin/sh
 set -eu
 
-DEVICE="${DEVICE:-/dev/video0}"
-LISTEN_HOST="${LISTEN_HOST:-0.0.0.0}"
-HOST="${HOST:-127.0.0.1}"
-PORT="${PORT:-5000}"
-PROTO="${PROTO:-tcp}"
-WIDTH="${WIDTH:-640}"
-HEIGHT="${HEIGHT:-480}"
-FPS="${FPS:-30}"
-QUALITY="${QUALITY:-80}"
-
-case "$PROTO" in
-    tcp|TCP)
-        PROTO_FLAG="--tcp"
-        TARGET_HOST="$LISTEN_HOST"
-        ;;
-    http|HTTP)
-        PROTO_FLAG="--http"
-        TARGET_HOST="$LISTEN_HOST"
-        ;;
-    udp|UDP)
-        PROTO_FLAG="--udp"
-        TARGET_HOST="$HOST"
-        ;;
-    *)
-        echo "PROTO deve ser tcp, udp ou http" >&2
-        exit 2
-        ;;
-esac
+CONFIG="${CONFIG:-tx.ini}"
 
 if [ ! -x ./mjpeg_tx ]; then
     make mjpeg_tx
 fi
 
-exec ./mjpeg_tx \
-    --device "$DEVICE" \
-    --host "$TARGET_HOST" \
-    --port "$PORT" \
-    "$PROTO_FLAG" \
-    --width "$WIDTH" \
-    --height "$HEIGHT" \
-    --fps "$FPS" \
-    --quality "$QUALITY"
+set -- ./mjpeg_tx --config "$CONFIG"
+
+if [ "${DEVICE+x}" ]; then
+    set -- "$@" --device "$DEVICE"
+fi
+if [ "${PORT+x}" ]; then
+    set -- "$@" --port "$PORT"
+fi
+if [ "${WIDTH+x}" ]; then
+    set -- "$@" --width "$WIDTH"
+fi
+if [ "${HEIGHT+x}" ]; then
+    set -- "$@" --height "$HEIGHT"
+fi
+if [ "${FPS+x}" ]; then
+    set -- "$@" --fps "$FPS"
+fi
+if [ "${QUALITY+x}" ]; then
+    set -- "$@" --quality "$QUALITY"
+fi
+
+if [ "${PROTO+x}" ]; then
+    case "$PROTO" in
+        tcp|TCP)
+            set -- "$@" --tcp
+            if [ "${LISTEN_HOST+x}" ]; then
+                set -- "$@" --host "$LISTEN_HOST"
+            fi
+            ;;
+        http|HTTP)
+            set -- "$@" --http
+            if [ "${LISTEN_HOST+x}" ]; then
+                set -- "$@" --host "$LISTEN_HOST"
+            fi
+            ;;
+        udp|UDP)
+            set -- "$@" --udp
+            if [ "${HOST+x}" ]; then
+                set -- "$@" --host "$HOST"
+            fi
+            ;;
+        *)
+            echo "PROTO deve ser tcp, udp ou http" >&2
+            exit 2
+            ;;
+    esac
+else
+    if [ "${LISTEN_HOST+x}" ]; then
+        set -- "$@" --host "$LISTEN_HOST"
+    elif [ "${HOST+x}" ]; then
+        set -- "$@" --host "$HOST"
+    fi
+fi
+
+if [ "${ALLOW+x}" ] && [ -n "$ALLOW" ]; then
+    OLD_IFS="$IFS"
+    IFS=", "
+    for rule in $ALLOW; do
+        if [ -n "$rule" ]; then
+            set -- "$@" --allow "$rule"
+        fi
+    done
+    IFS="$OLD_IFS"
+fi
+
+exec "$@"

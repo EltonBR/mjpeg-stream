@@ -1,30 +1,49 @@
 #!/bin/sh
 set -eu
 
-LISTEN_HOST="${LISTEN_HOST:-0.0.0.0}"
-HOST="${HOST:-127.0.0.1}"
-PORT="${PORT:-5000}"
-PROTO="${PROTO:-tcp}"
-
-case "$PROTO" in
-    tcp|TCP)
-        PROTO_FLAG="--tcp"
-        ;;
-    udp|UDP)
-        PROTO_FLAG="--udp"
-        ;;
-    *)
-        echo "PROTO deve ser tcp ou udp" >&2
-        exit 2
-        ;;
-esac
+CONFIG="${CONFIG:-rx.ini}"
 
 if [ ! -x ./mjpeg_rx ]; then
     make mjpeg_rx
 fi
 
-if [ "$PROTO" = "tcp" ] || [ "$PROTO" = "TCP" ]; then
-    exec ./mjpeg_rx --host "$HOST" --port "$PORT" "$PROTO_FLAG"
+set -- ./mjpeg_rx --config "$CONFIG"
+
+if [ "${PROTO+x}" ]; then
+    case "$PROTO" in
+        tcp|TCP)
+            set -- "$@" --tcp
+            ;;
+        udp|UDP)
+            set -- "$@" --udp
+            ;;
+        *)
+            echo "PROTO deve ser tcp ou udp" >&2
+            exit 2
+            ;;
+    esac
 fi
 
-exec ./mjpeg_rx --listen "$LISTEN_HOST" --port "$PORT" "$PROTO_FLAG"
+if [ "${HOST+x}" ]; then
+    set -- "$@" --host "$HOST"
+fi
+if [ "${LISTEN_HOST+x}" ]; then
+    set -- "$@" --listen "$LISTEN_HOST"
+fi
+if [ "${PORT+x}" ]; then
+    set -- "$@" --port "$PORT"
+fi
+
+if [ "${EVENT_HOST+x}" ] || [ "${EVENT_PORT+x}" ]; then
+    if [ ! "${EVENT_HOST+x}" ] || [ ! "${EVENT_PORT+x}" ]; then
+        echo "EVENT_HOST e EVENT_PORT devem ser definidos juntos" >&2
+        exit 2
+    fi
+    set -- "$@" --event-host "$EVENT_HOST" --event-port "$EVENT_PORT"
+fi
+
+if [ "${JOYSTICK+x}" ]; then
+    set -- "$@" --joystick "$JOYSTICK"
+fi
+
+exec "$@"
