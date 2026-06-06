@@ -1,10 +1,12 @@
 # MJPEG over IP in C
 
-Dois binarios:
+Projeto em C para capturar video de cameras V4L2 (`/dev/videoX`) e transmitir frames JPEG pela rede.
 
-- `mjpeg_tx`: captura `/dev/videoX` via V4L2, prefere MJPEG nativo da camera e transmite por TCP, UDP ou HTTP MJPEG. Se a camera nao entregar MJPEG, cai para RGB24/YUYV e codifica com libjpeg.
-- `mjpeg_rx`: recebe frames JPEG e exibe em uma janela GTK.
-- `v4l2_discover`: lista formatos, resolucoes e FPS suportados por uma camera V4L2.
+## Binarios
+
+- `mjpeg_tx`: transmissor. Captura da camera, prefere MJPEG nativo e transmite por TCP, UDP ou HTTP MJPEG.
+- `mjpeg_rx`: receptor GTK. Recebe JPEG, exibe imagem, tem zoom e pode enviar eventos de teclado/mouse/joystick por TCP em JSON.
+- `v4l2_discover`: discovery V4L2. Lista formatos, resolucoes e FPS suportados por uma camera.
 
 ## Dependencias
 
@@ -20,27 +22,34 @@ Build:
 make
 ```
 
-GTK quase sempre e distribuido para link dinamico. Se seu sistema tiver `libjpeg.a`, o transmissor pode ser compilado estaticamente:
+Build estatico do transmissor:
 
 ```sh
 make static-tx
 ```
 
-## Arquivos INI
+`mjpeg_rx` usa GTK/GdkPixbuf e normalmente deve ser linkado dinamicamente.
 
-O transmissor e o receptor podem carregar configuracoes de arquivo `.ini`. A ordem de precedencia e:
+## Configuracao INI
 
-1. valores padrao internos
+`mjpeg_tx` carrega `tx.ini` automaticamente se o arquivo existir. `mjpeg_rx` faz o mesmo com `rx.ini`.
+
+Tambem e possivel informar outro arquivo:
+
+```sh
+./mjpeg_tx --config tx-lab.ini
+./mjpeg_rx --config rx-lab.ini
+```
+
+Precedencia:
+
+1. defaults internos
 2. arquivo `.ini`
-3. argumentos de linha de comando
+3. argumentos CLI
 
-Arquivos padrao:
+Se `--config` for informado e o arquivo nao existir, o programa falha.
 
-- `mjpeg_tx` tenta carregar `tx.ini` automaticamente se ele existir.
-- `mjpeg_rx` tenta carregar `rx.ini` automaticamente se ele existir.
-- Use `--config outro.ini` para escolher outro arquivo. Se `--config` for informado e o arquivo nao existir, o programa falha.
-
-Exemplo TX:
+### tx.ini
 
 ```ini
 [stream]
@@ -53,11 +62,12 @@ height=480
 fps=30
 quality=80
 
+# Opcional. Sem allow, todos os clientes TCP/HTTP sao permitidos.
 allow=192.168.0.10
 allow=10.0.0.0/24
 ```
 
-Exemplo RX:
+### rx.ini
 
 ```ini
 [stream]
@@ -74,105 +84,103 @@ joystick_enabled=true
 joystick=/dev/input/js0
 ```
 
-Os scripts `start_transmitter.sh` e `start_receiver.sh` usam `CONFIG=tx.ini`/`CONFIG=rx.ini` por padrao. Variaveis de ambiente so sobrescrevem o `.ini` quando forem definidas explicitamente:
-
-```sh
-CONFIG=tx-lab.ini ./start_transmitter.sh
-PORT=8080 PROTO=http ./start_transmitter.sh
-```
-
-## Sistemas embarcados
-
-Este projeto foi mantido simples, mas ha algumas limitacoes praticas ao compilar para sistemas embarcados:
-
-- `mjpeg_tx` e `v4l2_discover` sao os binarios mais adequados para embarcados. Eles dependem basicamente de libc, headers Linux/V4L2 e, no caso do transmissor, libjpeg apenas para fallback quando a camera nao entrega MJPEG nativo.
-- Se a camera USB ja entrega `MJPEG`, o transmissor nao recomprime frames. Isso reduz bastante uso de CPU e memoria.
-- `mjpeg_rx` usa GTK/GdkPixbuf e costuma ser pesado para firmware minimo. Em embarcados, prefira visualizar pelo modo `--http` em um navegador ou crie um receptor especifico para o display/framebuffer do alvo.
-- A rede usa apenas IPv4 literal, por exemplo `192.168.0.10` ou `0.0.0.0`. Hostnames/DNS e IPv6 nao sao suportados. Isso evita a dependencia de `getaddrinfo`/NSS da glibc no binario estatico.
-- GTK estatico raramente e pratico: envolve muitas dependencias, loaders, temas, fontes e plugins. Trate o receptor GTK como ferramenta de desktop.
-- Para cross-compiling, normalmente basta sobrescrever `CC` e apontar `PKG_CONFIG`/sysroot conforme sua toolchain. Exemplo para o transmissor:
-
-```sh
-make clean
-make CC=arm-linux-gnueabihf-gcc mjpeg_tx
-```
-
-- Para evitar dependencias de libjpeg no transmissor, seria necessario criar uma variante sem fallback de codificacao e exigir `MJPEG` nativo da camera. O codigo atual ainda linka `-ljpeg` porque mantem o fallback `RGB24`/`YUYV`.
-- O discovery usa ioctls V4L2 comuns, mas alguns drivers nao informam todos os intervalos de FPS/resolucoes. Nesse caso ele mostra que o dado nao foi informado pelo driver.
-
 ## Uso
 
-Descobrir formatos e resolucoes da camera:
+Descobrir formatos da camera:
 
 ```sh
 ./v4l2_discover /dev/video0
 ```
 
-Ou pelo script:
+Transmissor HTTP MJPEG para navegador:
 
 ```sh
-./discover_camera.sh /dev/video0
+./mjpeg_tx --config tx.ini --http --port 8080
 ```
 
-TCP, recomendado. O transmissor e o servidor; o receptor e o cliente. O transmissor aceita multiplos receptores e continua aguardando novos clientes quando algum fecha:
-
-```sh
-./mjpeg_tx --device /dev/video0 --host 0.0.0.0 --port 5000 --tcp --width 640 --height 480 --fps 30 --quality 80
-./mjpeg_rx --host 127.0.0.1 --port 5000 --tcp
-```
-
-HTTP MJPEG para navegador:
-
-```sh
-./mjpeg_tx --device /dev/video0 --host 0.0.0.0 --port 8080 --http --width 640 --height 480 --fps 30
-```
-
-Depois abra:
+Abrir no navegador:
 
 ```text
 http://127.0.0.1:8080/
 ```
 
-Ou abra `viewer.html` no navegador para configurar IP, porta e zoom pela interface.
+Tambem ha uma pagina local:
 
-Controle de acesso por IP no transmissor TCP/HTTP:
-
-```sh
-./mjpeg_tx --device /dev/video0 --host 0.0.0.0 --port 8080 --http \
-  --allow 192.168.0.10 \
-  --allow 192.168.0.20-192.168.0.30 \
-  --allow 10.0.0.0/24
+```text
+viewer.html
 ```
 
-Por padrao, todos os clientes sao permitidos. Ao informar uma ou mais regras `--allow`, o transmissor passa a aceitar apenas clientes que batem com alguma regra. Formatos aceitos:
+Ela permite configurar IP, porta, path e zoom.
 
-- `--allow all` ou `--allow "*"`: permite todos.
-- `--allow 192.168.0.10`: permite um IP especifico.
-- `--allow 192.168.0.20-192.168.0.30`: permite range inclusivo.
-- `--allow 10.0.0.0/24`: permite CIDR IPv4.
-
-Pelo script:
+TCP binario com receptor GTK:
 
 ```sh
-PROTO=http PORT=8080 ALLOW="192.168.0.10,10.0.0.0/24" ./start_transmitter.sh
+./mjpeg_tx --tcp --host 0.0.0.0 --port 5000
+./mjpeg_rx --tcp --host 127.0.0.1 --port 5000
 ```
 
 UDP:
 
 ```sh
-./mjpeg_rx --listen 0.0.0.0 --port 5000 --udp
-./mjpeg_tx --device /dev/video0 --host 127.0.0.1 --port 5000 --udp
+./mjpeg_rx --udp --listen 0.0.0.0 --port 5000
+./mjpeg_tx --udp --host 127.0.0.1 --port 5000
 ```
 
-Eventos de entrada do receptor:
+Scripts:
 
 ```sh
-./mjpeg_rx --host 127.0.0.1 --port 5000 --tcp \
+./start_transmitter.sh
+./start_receiver.sh
+```
+
+Os scripts usam `CONFIG=tx.ini` e `CONFIG=rx.ini` por padrao. Variaveis de ambiente so sobrescrevem o `.ini` quando forem definidas:
+
+```sh
+CONFIG=tx-lab.ini ./start_transmitter.sh
+PORT=8080 PROTO=http ./start_transmitter.sh
+EVENT_HOST=127.0.0.1 EVENT_PORT=6000 JOYSTICK=/dev/input/js0 ./start_receiver.sh
+```
+
+## Controle de acesso
+
+O transmissor aceita controle de acesso por IP para clientes TCP e HTTP.
+
+Sem `allow`, todos sao permitidos. Com uma ou mais regras, apenas clientes que batem com alguma regra sao aceitos.
+
+Formatos:
+
+- `allow=all`
+- `allow=192.168.0.10`
+- `allow=192.168.0.20-192.168.0.30`
+- `allow=10.0.0.0/24`
+
+Via CLI:
+
+```sh
+./mjpeg_tx --http --port 8080 \
+  --allow 192.168.0.10 \
+  --allow 10.0.0.0/24
+```
+
+Via script:
+
+```sh
+ALLOW="192.168.0.10,10.0.0.0/24" ./start_transmitter.sh
+```
+
+## Eventos do receptor
+
+Quando configurado, o receptor envia eventos de teclado, mouse e joystick por TCP como JSON Lines.
+
+CLI:
+
+```sh
+./mjpeg_rx --tcp --host 127.0.0.1 --port 5000 \
   --event-host 127.0.0.1 --event-port 6000 \
   --joystick /dev/input/js0
 ```
 
-O receptor conecta via TCP no IP/porta de eventos e envia JSON Lines, uma linha por evento. Exemplos:
+Exemplos:
 
 ```json
 {"origin":"keyboard","type":"key_press","keyval":65361,"key":"Left","state":0}
@@ -181,23 +189,34 @@ O receptor conecta via TCP no IP/porta de eventos e envia JSON Lines, uma linha 
 {"origin":"joystick","type":"axis","number":0,"value":1200,"time":123456,"initial":false}
 ```
 
-Pelo script:
+O socket de eventos permanece ativo enquanto o receptor estiver aberto. Se a conexao cair ou o servidor de controle ainda nao estiver disponivel, o receptor continua rodando e tenta reconectar automaticamente. Eventos gerados enquanto nao ha conexao ativa sao descartados.
+
+## Protocolos
+
+- TCP: o transmissor e servidor; o receptor e cliente. Cada frame usa prefixo de tamanho de 32 bits.
+- HTTP: `multipart/x-mixed-replace`, compativel com navegador e `<img>`.
+- UDP: fragmenta o JPEG em pacotes menores que o MTU. Perda de pacote descarta o frame.
+
+## Observacoes
+
+- Enderecos de rede devem ser IPv4 literal: `127.0.0.1`, `0.0.0.0`, `192.168.x.x`. Hostnames como `localhost` nao sao aceitos.
+- O transmissor tenta `MJPEG` nativo primeiro e envia o JPEG da camera sem recompressao.
+- Se `MJPEG` nao estiver disponivel, tenta `RGB24` e depois `YUYV`; nesses casos usa libjpeg.
+- `quality` so afeta o fallback com codificacao via libjpeg. Em MJPEG nativo, a qualidade depende da camera/driver.
+- O receptor GTK tem botoes `+` e `-` para zoom.
+- Joystick usa a API Linux `/dev/input/jsX`.
+
+## Sistemas embarcados
+
+- `mjpeg_tx` e `v4l2_discover` sao os binarios mais adequados para embarcados.
+- Cameras USB com MJPEG nativo reduzem bastante CPU e memoria, porque o transmissor nao recomprime frames.
+- `mjpeg_rx` depende de GTK/GdkPixbuf e e mais adequado para desktop.
+- A rede usa IPv4 literal e nao usa `getaddrinfo`, evitando dependencia de NSS/DNS da glibc no transmissor estatico.
+- Para cross-compiling, sobrescreva `CC` conforme a toolchain:
 
 ```sh
-EVENT_HOST=127.0.0.1 EVENT_PORT=6000 JOYSTICK=/dev/input/js0 ./start_receiver.sh
+make clean
+make CC=arm-linux-gnueabihf-gcc mjpeg_tx
 ```
 
-O socket de eventos permanece ativo enquanto o receptor estiver aberto. Se a conexao cair ou o servidor de controle ainda nao estiver disponivel, o receptor continua rodando e tenta reconectar automaticamente.
-
-Notas:
-
-- Enderecos de rede devem ser IPv4 literal; use `127.0.0.1`, `0.0.0.0` ou o IP da maquina. Nomes como `localhost` nao sao aceitos.
-- TCP usa prefixo de tamanho de 32 bits por frame.
-- HTTP usa `multipart/x-mixed-replace`, compativel com navegador e tags `<img>`.
-- Controle de acesso por IP se aplica a clientes TCP e HTTP. UDP continua usando o destino configurado em `--host`.
-- UDP divide o JPEG em fragmentos menores que o MTU. Perda de pacote descarta o frame.
-- O receptor tem botoes `+` e `-` para zoom da imagem recebida.
-- Eventos de teclado, mouse e joystick so sao enviados quando `--event-host` e `--event-port` forem informados. Joystick usa a API Linux `/dev/input/jsX`. O canal TCP de eventos tenta reconectar automaticamente em caso de perda de conexao.
-- O transmissor tenta usar V4L2 `MJPEG` primeiro e envia o JPEG da camera direto, sem recompressao.
-- Se `MJPEG` nao estiver disponivel, tenta `RGB24` e depois `YUYV`; nesses casos usa libjpeg para gerar cada frame JPEG.
-- `--quality` so afeta o fallback com codificacao via libjpeg. Em MJPEG nativo, a qualidade depende da propria camera/driver.
+- Para remover a dependencia de libjpeg do transmissor, seria necessario compilar uma variante que exige MJPEG nativo e remove o fallback `RGB24`/`YUYV`.
