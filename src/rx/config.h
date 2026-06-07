@@ -11,6 +11,9 @@ struct rx_config {
     const char *joystick_device;
     const char *overlay_path;
     const char *hud_color;
+    const char *hud_font;
+    const char *dim_color;
+    double dim_alpha;
     const char *telemetry_host;
     const char *telemetry_port;
     int events_enabled;

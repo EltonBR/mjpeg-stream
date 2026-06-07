@@ -11,7 +11,7 @@ Responsavel por capturar teclado, mouse e joystick no receptor GTK e enviar even
 - `src/rx/main.c`: ativa eventos conforme configuracao.
 - `src/rx/app.c` e `src/rx/app.h`: estado do sender, thread de joystick e cleanup.
 - `rx.ini`: configuracao de `events_enabled`, `event_host`, `event_port`, `joystick_enabled` e `joystick`.
-- `start_receiver.sh`: variaveis `EVENT_HOST`, `EVENT_PORT` e `JOYSTICK`.
+- `start_receiver.sh`: inicia com `rx.ini`; eventos e joystick devem ser configurados no INI.
 
 ## Contrato de eventos
 

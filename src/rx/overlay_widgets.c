@@ -44,6 +44,9 @@ static struct overlay_widget *parse_widget(struct json_object *obj)
     if (strcmp(type, "vertical_ruler") == 0) {
         return vertical_ruler_widget_parse(obj);
     }
+    if (strcmp(type, "horizontal_ruler") == 0) {
+        return horizontal_ruler_widget_parse(obj);
+    }
     fprintf(stderr, "overlay: widget type desconhecido ignorado: %s\n", type);
     return NULL;
 }
@@ -104,6 +107,8 @@ void overlay_widgets_draw(GPtrArray *widgets, cairo_t *cr,
             image_widget_draw(widget, cr, ctx);
         } else if (widget->type == WIDGET_VERTICAL_RULER) {
             vertical_ruler_widget_draw(widget, cr, ctx);
+        } else if (widget->type == WIDGET_HORIZONTAL_RULER) {
+            horizontal_ruler_widget_draw(widget, cr, ctx);
         }
     }
 

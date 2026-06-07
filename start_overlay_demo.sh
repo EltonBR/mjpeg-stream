@@ -3,14 +3,8 @@ set -eu
 
 TX_CONFIG="${TX_CONFIG:-tx.ini}"
 RX_CONFIG="${RX_CONFIG:-rx.ini}"
-TELEMETRY_HOST="${TELEMETRY_HOST:-127.0.0.1}"
-TELEMETRY_PORT="${TELEMETRY_PORT:-7000}"
 TELEMETRY_INTERVAL="${TELEMETRY_INTERVAL:-0.1}"
-EVENT_HOST="${EVENT_HOST:-127.0.0.1}"
-EVENT_PORT="${EVENT_PORT:-6000}"
 
-OVERLAY="${OVERLAY:-overlay.json}"
-HUD_COLOR="${HUD_COLOR:-}"
 HUD_ASSET_SRC="${HUD_ASSET_SRC:-overlays/crosshair.png}"
 HUD_ASSET_OUT="${HUD_ASSET_OUT:-overlays/crosshair.png}"
 
@@ -30,11 +24,6 @@ cleanup() {
 
 trap cleanup INT TERM EXIT
 
-if [ ! -f "$OVERLAY" ]; then
-    echo "overlay nao encontrado: $OVERLAY" >&2
-    exit 1
-fi
-
 if [ ! -f "$TX_CONFIG" ]; then
     echo "config do transmissor nao encontrada: $TX_CONFIG" >&2
     exit 1
@@ -44,6 +33,51 @@ if [ ! -f "$RX_CONFIG" ]; then
     echo "config do receptor nao encontrada: $RX_CONFIG" >&2
     exit 1
 fi
+
+ini_value() {
+    awk -F= -v section="$1" -v key="$2" -v fallback="$3" '
+        function trim(s) {
+            sub(/^[ \t\r\n]+/, "", s)
+            sub(/[ \t\r\n]+$/, "", s)
+            return s
+        }
+        function strip_comment(s,    i, c, p) {
+            for (i = 1; i <= length(s); i++) {
+                c = substr(s, i, 1)
+                p = i == 1 ? "" : substr(s, i - 1, 1)
+                if ((c == "#" || c == ";") && (i == 1 || p ~ /[ \t]/)) {
+                    return substr(s, 1, i - 1)
+                }
+            }
+            return s
+        }
+        BEGIN { current = ""; found = fallback }
+        {
+            line = trim(strip_comment($0))
+            if (line == "") next
+            if (line ~ /^\[/) {
+                current = line
+                sub(/^\[/, "", current)
+                sub(/\].*$/, "", current)
+                current = trim(current)
+                next
+            }
+            if (current == section) {
+                k = trim($1)
+                if (k == key) {
+                    sub(/^[^=]*=/, "", line)
+                    found = trim(line)
+                }
+            }
+        }
+        END { print found }
+    ' "$RX_CONFIG"
+}
+
+TELEMETRY_HOST="$(ini_value telemetry telemetry_host 127.0.0.1)"
+TELEMETRY_PORT="$(ini_value telemetry telemetry_port 7000)"
+EVENT_HOST="$(ini_value events event_host 127.0.0.1)"
+EVENT_PORT="$(ini_value events event_port 6000)"
 
 if [ ! -f overlays/crosshair.png ]; then
     echo "asset nao encontrado: overlays/crosshair.png" >&2
@@ -57,13 +91,13 @@ fi
 
 make
 
-if [ -n "$HUD_COLOR" ]; then
+if [ "${ASSET_COLOR+x}" ] && [ -n "$ASSET_COLOR" ]; then
     if [ ! -f "$HUD_ASSET_SRC" ]; then
         echo "asset de entrada nao encontrado: $HUD_ASSET_SRC" >&2
         exit 1
     fi
-    echo "colorindo asset ${HUD_ASSET_SRC} -> ${HUD_ASSET_OUT} com ${HUD_COLOR}"
-    ./asset_colorize --color "$HUD_COLOR" "$HUD_ASSET_SRC" "$HUD_ASSET_OUT"
+    echo "colorindo asset ${HUD_ASSET_SRC} -> ${HUD_ASSET_OUT} com ${ASSET_COLOR}"
+    ./asset_colorize --color "$ASSET_COLOR" "$HUD_ASSET_SRC" "$HUD_ASSET_OUT"
 fi
 
 echo "iniciando telemetria em ${TELEMETRY_HOST}:${TELEMETRY_PORT} e eventos em ${EVENT_HOST}:${EVENT_PORT}"
@@ -88,18 +122,5 @@ if ! kill -0 "$tx_pid" 2>/dev/null; then
     exit 1
 fi
 
-echo "abrindo receptor com config ${RX_CONFIG} e overlay ${OVERLAY}"
-set -- ./mjpeg_rx \
-    --config "$RX_CONFIG" \
-    --overlay "$OVERLAY" \
-    --telemetry-enabled \
-    --telemetry-host "$TELEMETRY_HOST" \
-    --telemetry-port "$TELEMETRY_PORT" \
-    --event-host "$EVENT_HOST" \
-    --event-port "$EVENT_PORT"
-
-if [ -n "$HUD_COLOR" ]; then
-    set -- "$@" --hud-color "$HUD_COLOR"
-fi
-
-"$@"
+echo "abrindo receptor com config ${RX_CONFIG}"
+./mjpeg_rx --config "$RX_CONFIG"

@@ -18,6 +18,9 @@ static void rx_defaults(struct rx_config *cfg)
     cfg->joystick_device = "/dev/input/js0";
     cfg->overlay_path = NULL;
     cfg->hud_color = "green";
+    cfg->hud_font = "Monospace";
+    cfg->dim_color = "#000000";
+    cfg->dim_alpha = 0.20;
     cfg->telemetry_host = "127.0.0.1";
     cfg->telemetry_port = "7000";
     cfg->events_enabled = 0;
@@ -70,6 +73,12 @@ static int rx_ini_handler(void *user, const char *section,
         cfg->overlay_path = strdup(value);
     } else if (strcmp(key, "hud_color") == 0) {
         cfg->hud_color = strdup(value);
+    } else if (strcmp(key, "hud_font") == 0) {
+        cfg->hud_font = strdup(value);
+    } else if (strcmp(key, "dim_color") == 0) {
+        cfg->dim_color = strdup(value);
+    } else if (strcmp(key, "dim_alpha") == 0) {
+        cfg->dim_alpha = strtod(value, NULL);
     } else if (strcmp(key, "telemetry_enabled") == 0) {
         cfg->telemetry_enabled = parse_bool(value);
     } else if (strcmp(key, "telemetry_host") == 0) {
@@ -88,7 +97,7 @@ void rx_usage(const char *argv0)
             "Uso TCP: %s [--config rx.ini] --host 127.0.0.1|::1 --port 5000 --tcp\n"
             "Uso UDP: %s --listen 0.0.0.0|:: --port 5000 --udp\n"
             "Eventos: --event-host 127.0.0.1|::1 --event-port 6000 [--joystick /dev/input/js0]\n"
-            "Overlay: --overlay overlay.json [--hud-color green|amber|#rrggbb]\n"
+            "Overlay: --overlay overlay.json [--hud-color green|amber|#rrggbb] [--hud-font Monospace] [--dim-color #000000 --dim-alpha 0.20]\n"
             "Telemetria: [--telemetry-enabled --telemetry-host 127.0.0.1 --telemetry-port 7000]\n"
             "Janela: [--lock-aspect]\n",
             argv0, argv0);
@@ -145,6 +154,12 @@ int rx_parse_args(int argc, char **argv, struct rx_config *cfg)
             cfg->overlay_required = 1;
         } else if (strcmp(argv[i], "--hud-color") == 0 && i + 1 < argc) {
             cfg->hud_color = argv[++i];
+        } else if (strcmp(argv[i], "--hud-font") == 0 && i + 1 < argc) {
+            cfg->hud_font = argv[++i];
+        } else if (strcmp(argv[i], "--dim-color") == 0 && i + 1 < argc) {
+            cfg->dim_color = argv[++i];
+        } else if (strcmp(argv[i], "--dim-alpha") == 0 && i + 1 < argc) {
+            cfg->dim_alpha = strtod(argv[++i], NULL);
         } else if (strcmp(argv[i], "--telemetry-enabled") == 0) {
             cfg->telemetry_enabled = 1;
         } else if (strcmp(argv[i], "--telemetry-host") == 0 && i + 1 < argc) {

@@ -95,6 +95,9 @@ joystick=/dev/input/js0
 [overlay]
 overlay=overlay.json
 hud_color=green
+hud_font=Monospace
+dim_color=#000000
+dim_alpha=0.20
 
 [telemetry]
 telemetry_enabled=true
@@ -102,7 +105,7 @@ telemetry_host=127.0.0.1
 telemetry_port=7000
 ```
 
-Quando `overlay=overlay.json` vem do `rx.ini` e o arquivo nao existe, o receptor segue sem overlay. Quando `--overlay overlay.json` e informado na CLI, arquivo ausente e erro. `hud_color` aceita `green`, `amber` ou `#rrggbb` e afeta labels/linhas.
+Quando `overlay=overlay.json` vem do `rx.ini` e o arquivo nao existe, o receptor segue sem overlay. Quando `--overlay overlay.json` e informado na CLI, arquivo ausente e erro. `hud_color` aceita `green`, `amber` ou `#rrggbb` e afeta labels/linhas. `hud_font` define a familia de fonte do HUD; o padrao e `Monospace`. `dim_color` e `dim_alpha` aplicam uma camada translucida sobre o video antes do HUD para melhorar leitura.
 
 ## Uso
 
@@ -174,14 +177,12 @@ Scripts:
 ./start_receiver.sh
 ```
 
-Os scripts usam `CONFIG=tx.ini` e `CONFIG=rx.ini` por padrao. Variaveis de ambiente so sobrescrevem o `.ini` quando forem definidas:
+Os scripts priorizam sempre o `.ini`. Use `CONFIG` apenas para escolher outro arquivo de configuracao; parametros de runtime devem ficar no INI.
 
 ```sh
 CONFIG=tx-lab.ini ./start_transmitter.sh
-PORT=8080 PROTO=http ./start_transmitter.sh
-EVENT_HOST=127.0.0.1 EVENT_PORT=6000 JOYSTICK=/dev/input/js0 ./start_receiver.sh
-OVERLAY=overlay.json TELEMETRY_ENABLED=true TELEMETRY_HOST=127.0.0.1 TELEMETRY_PORT=7000 ./start_receiver.sh
-HUD_COLOR=amber ./start_overlay_demo.sh
+CONFIG=rx-lab.ini ./start_receiver.sh
+TX_CONFIG=tx-lab.ini RX_CONFIG=rx-lab.ini ./start_overlay_demo.sh
 ```
 
 ## Controle de acesso
@@ -209,11 +210,7 @@ Via CLI:
   --allow 2001:db8::/32
 ```
 
-Via script:
-
-```sh
-ALLOW="192.168.0.10,10.0.0.0/24,2001:db8::/32" ./start_transmitter.sh
-```
+Via script, configure as regras `allow` no `tx.ini` e execute `./start_transmitter.sh`.
 
 ## Eventos do receptor
 

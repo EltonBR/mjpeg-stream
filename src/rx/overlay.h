@@ -53,6 +53,11 @@ struct overlay_state {
     double hud_r;
     double hud_g;
     double hud_b;
+    char *hud_font;
+    double dim_r;
+    double dim_g;
+    double dim_b;
+    double dim_alpha;
     GPtrArray *elements;
     GPtrArray *widgets;
     GHashTable *vars;
@@ -61,6 +66,9 @@ struct overlay_state {
 
 void overlay_init(struct overlay_state *overlay);
 int overlay_set_hud_color(struct overlay_state *overlay, const char *color);
+int overlay_set_hud_font(struct overlay_state *overlay, const char *font);
+int overlay_set_dim(struct overlay_state *overlay, const char *color,
+                    double alpha);
 int overlay_load_file(struct overlay_state *overlay, const char *path);
 void overlay_cleanup(struct overlay_state *overlay);
 void overlay_draw(struct overlay_state *overlay, cairo_t *cr,

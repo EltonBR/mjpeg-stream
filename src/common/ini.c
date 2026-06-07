@@ -23,6 +23,19 @@ static char *trim(char *s)
     return s;
 }
 
+static char *find_inline_comment(char *s)
+{
+    char *p;
+
+    for (p = s; *p; p++) {
+        if ((*p == '#' || *p == ';') &&
+            (p == s || isspace((unsigned char)*(p - 1)))) {
+            return p;
+        }
+    }
+    return NULL;
+}
+
 int ini_parse_file(const char *path, ini_handler handler, void *user)
 {
     FILE *fp;
@@ -47,11 +60,7 @@ int ini_parse_file(const char *path, ini_handler handler, void *user)
             continue;
         }
 
-        comment = strchr(s, '#');
-        if (comment) {
-            *comment = '\0';
-        }
-        comment = strchr(s, ';');
+        comment = find_inline_comment(s);
         if (comment) {
             *comment = '\0';
         }

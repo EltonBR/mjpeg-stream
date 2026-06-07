@@ -13,7 +13,7 @@ Responsavel pelo binario `mjpeg_tx`, que captura frames de uma camera V4L2 e tra
 - `src/tx/stream.c` e `src/tx/stream.h`: TCP, UDP, HTTP MJPEG, clientes e fragmentacao UDP.
 - `src/tx/access_control.c` e `src/tx/access_control.h`: regras `allow` para TCP/HTTP.
 - `tx.ini`: configuracao padrao do transmissor.
-- `start_transmitter.sh`: wrapper de inicializacao com variaveis de ambiente.
+- `start_transmitter.sh`: wrapper de inicializacao que usa `tx.ini` e nao sobrescreve parametros de runtime por CLI.
 
 ## Fluxo de execucao
 

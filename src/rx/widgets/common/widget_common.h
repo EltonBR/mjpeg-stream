@@ -10,7 +10,8 @@ enum widget_type {
     WIDGET_READOUT,
     WIDGET_STATUS,
     WIDGET_IMAGE,
-    WIDGET_VERTICAL_RULER
+    WIDGET_VERTICAL_RULER,
+    WIDGET_HORIZONTAL_RULER
 };
 
 enum widget_anchor {
@@ -30,6 +31,7 @@ struct overlay_render_context {
     double hud_r;
     double hud_g;
     double hud_b;
+    const char *hud_font;
     const char *assets_dir;
     GHashTable *vars;
 };
@@ -64,6 +66,8 @@ struct overlay_widget {
     double window;
     double major_step;
     double minor_step;
+    int flip_horizontal;
+    int flip_vertical;
     char *compass_labels[8];
     GPtrArray *items;
     GdkPixbuf *pixbuf;

@@ -17,7 +17,7 @@ Responsavel pelo binario `mjpeg_rx`, que recebe frames JPEG por TCP ou UDP, exib
 - `src/rx/event_sender.c` e `src/rx/event_sender.h`: canal TCP de eventos e reconexao.
 - `src/rx/input.c` e `src/rx/input.h`: teclado, mouse e joystick Linux.
 - `rx.ini`: configuracao padrao do receptor.
-- `start_receiver.sh`: wrapper de inicializacao com variaveis de ambiente.
+- `start_receiver.sh`: wrapper de inicializacao que usa `rx.ini` e nao sobrescreve parametros de runtime por CLI.
 
 ## Fluxo de execucao
 
@@ -40,6 +40,9 @@ Responsavel pelo binario `mjpeg_rx`, que recebe frames JPEG por TCP ou UDP, exib
 - O video e desenhado em modo cover: preenche o `GtkDrawingArea` mantendo proporcao, com crop central quando necessario.
 - O zoom atua sobre o video/crop, nao sobre o HUD. O minimo e `100%` para manter a area preenchida.
 - O overlay deve ser desenhado no espaco visivel do `GtkDrawingArea` (`0,0,width,height`), nao no retangulo interno do video escalado/cortado. Isso evita que HUD saia da area visivel ou aumente junto com o zoom.
+- Fonte global do HUD vem de `hud_font`/`--hud-font` e deve passar por `overlay_state` para elementos basicos e widgets. O padrao e `Monospace`.
+- A camada `dim_color`/`dim_alpha` e desenhada em `overlay_draw` depois do video e antes de elementos/widgets do HUD. Padrao: preto com alpha `0.20`; `dim_alpha=0` desativa.
+- Widgets `vertical_ruler` e `horizontal_ruler` compartilham a mesma implementacao em `src/rx/widgets/vertical_ruler/vertical_ruler_widget.c`. Mantenha parametros comuns como `value`, `min`, `max`, `window`, `major_step`, `minor_step`, `flip_horizontal` e `flip_vertical` consistentes entre os dois.
 - `--lock-aspect` e `lock_aspect=true` mantem a area da imagem na proporcao do frame recebido usando `gtk_window_set_geometry_hints` com o `GtkDrawingArea` como widget de geometria. Nao force resize dentro de `size-allocate`, porque isso briga com o window manager durante o arraste. Quando ativo, maximizar deve ficar desabilitado.
 - Eventos de teclado, mouse e joystick sao enviados como uma linha JSON por evento.
 - Eventos de pressionamento usam `down/up` e disparam `press` no release: `keydown`/`keyup`/`keypress`, `mousedown`/`mouseup`/`mousepress`, `buttondown`/`buttonup`/`buttonpress`.

@@ -30,6 +30,14 @@ int main(int argc, char **argv)
         rx_app_cleanup(&app);
         return 1;
     }
+    if (overlay_set_hud_font(&app.overlay, cfg.hud_font) < 0) {
+        rx_app_cleanup(&app);
+        return 1;
+    }
+    if (overlay_set_dim(&app.overlay, cfg.dim_color, cfg.dim_alpha) < 0) {
+        rx_app_cleanup(&app);
+        return 1;
+    }
 
     if (cfg.overlay_path) {
         if (access(cfg.overlay_path, R_OK) == 0) {

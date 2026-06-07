@@ -29,6 +29,11 @@ void overlay_init(struct overlay_state *overlay)
     overlay->hud_r = 0.0;
     overlay->hud_g = 1.0;
     overlay->hud_b = 0.0;
+    overlay->hud_font = strdup("Monospace");
+    overlay->dim_r = 0.0;
+    overlay->dim_g = 0.0;
+    overlay->dim_b = 0.0;
+    overlay->dim_alpha = 0.20;
     overlay->elements = g_ptr_array_new_with_free_func(overlay_element_free);
     overlay->widgets = overlay_widgets_new();
     overlay->vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
@@ -143,6 +148,54 @@ int overlay_set_hud_color(struct overlay_state *overlay, const char *color)
     overlay->hud_r = r;
     overlay->hud_g = g;
     overlay->hud_b = b;
+    g_mutex_unlock(&overlay->lock);
+    return 0;
+}
+
+int overlay_set_hud_font(struct overlay_state *overlay, const char *font)
+{
+    char *copy;
+
+    if (!font || !font[0]) {
+        font = "Monospace";
+    }
+    copy = strdup(font);
+    if (!copy) {
+        return -1;
+    }
+
+    g_mutex_lock(&overlay->lock);
+    free(overlay->hud_font);
+    overlay->hud_font = copy;
+    g_mutex_unlock(&overlay->lock);
+    return 0;
+}
+
+int overlay_set_dim(struct overlay_state *overlay, const char *color,
+                    double alpha)
+{
+    double r;
+    double g;
+    double b;
+
+    if (!color || !color[0]) {
+        color = "#000000";
+    }
+    if (parse_color(color, &r, &g, &b) < 0) {
+        fprintf(stderr, "overlay: dim_color invalido: %s\n", color);
+        return -1;
+    }
+    if (alpha < 0.0) {
+        alpha = 0.0;
+    } else if (alpha > 1.0) {
+        alpha = 1.0;
+    }
+
+    g_mutex_lock(&overlay->lock);
+    overlay->dim_r = r;
+    overlay->dim_g = g;
+    overlay->dim_b = b;
+    overlay->dim_alpha = alpha;
     g_mutex_unlock(&overlay->lock);
     return 0;
 }
@@ -639,7 +692,8 @@ static void draw_label_locked(struct overlay_state *overlay,
     double top;
 
     cairo_save(cr);
-    cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+    cairo_select_font_face(cr, overlay->hud_font ? overlay->hud_font : "Monospace",
+                           CAIRO_FONT_SLANT_NORMAL,
                            CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, el->width);
     cairo_text_extents(cr, text, &ext);
@@ -711,10 +765,20 @@ void overlay_draw(struct overlay_state *overlay, cairo_t *cr,
     ctx.hud_r = overlay->hud_r;
     ctx.hud_g = overlay->hud_g;
     ctx.hud_b = overlay->hud_b;
+    ctx.hud_font = overlay->hud_font ? overlay->hud_font : "Monospace";
     ctx.assets_dir = overlay->assets_dir;
     ctx.vars = overlay->vars;
 
     sorted = g_ptr_array_new();
+    if (overlay->dim_alpha > 0.0) {
+        cairo_save(cr);
+        cairo_set_source_rgba(cr, overlay->dim_r, overlay->dim_g,
+                              overlay->dim_b, overlay->dim_alpha);
+        cairo_rectangle(cr, frame_x, frame_y, frame_w, frame_h);
+        cairo_fill(cr);
+        cairo_restore(cr);
+    }
+
     for (i = 0; i < overlay->elements->len; i++) {
         struct overlay_element *el = g_ptr_array_index(overlay->elements, i);
         if (el->visible) {
@@ -742,6 +806,8 @@ void overlay_cleanup(struct overlay_state *overlay)
 {
     free(overlay->assets_dir);
     overlay->assets_dir = NULL;
+    free(overlay->hud_font);
+    overlay->hud_font = NULL;
     if (overlay->elements) {
         g_ptr_array_free(overlay->elements, TRUE);
         overlay->elements = NULL;

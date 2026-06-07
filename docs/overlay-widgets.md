@@ -53,19 +53,23 @@ Textos e alguns valores numericos podem usar variaveis de telemetria:
 
 As variaveis sao atualizadas por mensagens JSON Lines de telemetria.
 
-## Cor do HUD
+## Cor e fonte do HUD
 
-`hud_color` vem do `rx.ini` ou de `--hud-color`.
+`hud_color` e `hud_font` vem do `rx.ini` ou de `--hud-color` / `--hud-font`.
 
 ```ini
 [overlay]
 hud_color=green
+hud_font=Monospace
+dim_color=#000000
+dim_alpha=0.20
 ```
 
 Ou:
 
 ```sh
-./mjpeg_rx --overlay overlay.json --hud-color amber
+./mjpeg_rx --overlay overlay.json --hud-color amber --hud-font Monospace \
+  --dim-color '#000000' --dim-alpha 0.20
 ```
 
 Valores aceitos:
@@ -74,7 +78,11 @@ Valores aceitos:
 - `amber`
 - `#rrggbb`
 
-`hud_color` afeta widgets desenhados por Cairo, como textos, linhas e bussola. PNGs sao usados como estao no arquivo; para pintar PNG, use `asset_colorize`.
+`hud_color` afeta widgets desenhados por Cairo, como textos, linhas e bussola. `hud_font` define a familia usada em textos do HUD; o padrao e `Monospace`.
+
+`dim_color` e `dim_alpha` desenham uma camada translucida sobre o video e antes do HUD, util quando a imagem esta clara demais. O padrao e preto com `0.20`. Use `dim_alpha=0` para desativar.
+
+PNGs sao usados como estao no arquivo; para pintar PNG, use `asset_colorize`.
 
 ## Widget `compass`
 
@@ -122,11 +130,11 @@ Exemplo em portugues:
 ["N", "NE", "L", "SE", "S", "SO", "O", "NO"]
 ```
 
-## Widget `vertical_ruler`
+## Widgets `vertical_ruler` e `horizontal_ruler`
 
-Regua vertical estilo HUD. O valor atual fica no centro; os tracos sobem ou descem conforme a telemetria muda.
+Regua estilo HUD. O valor atual fica no centro; os tracos se movem conforme a telemetria muda. Use `vertical_ruler` para escala em pe e `horizontal_ruler` para escala deitada.
 
-Exemplo para angulo:
+Exemplo vertical para angulo:
 
 ```json
 {
@@ -143,8 +151,37 @@ Exemplo para angulo:
   "window": 40,
   "major_step": 10,
   "minor_step": 1,
+  "flip_horizontal": true,
   "label": "ANG ",
   "suffix": "\u00b0",
+  "size": 13,
+  "alpha": 0.95,
+  "z_index": 35,
+  "visible": true
+}
+```
+
+Exemplo horizontal:
+
+```json
+{
+  "id": "speed_ruler",
+  "type": "horizontal_ruler",
+  "x": 0.5,
+  "y": 0.88,
+  "anchor": "center",
+  "w": 0.46,
+  "h": 70,
+  "value": "{speed}",
+  "min": 0,
+  "max": 200,
+  "window": 80,
+  "major_step": 10,
+  "minor_step": 2,
+  "flip_horizontal": false,
+  "flip_vertical": false,
+  "label": "SPD ",
+  "suffix": " km/h",
   "size": 13,
   "alpha": 0.95,
   "z_index": 35,
@@ -161,6 +198,8 @@ Campos:
 - `minor_step`: passo dos tracos menores, por exemplo `1`.
 - `label`: prefixo do valor central.
 - `suffix`: posfixo do valor central, por exemplo `\u00b0`.
+- `flip_horizontal`: no `vertical_ruler`, espelha os tracos/labels para o outro lado da linha, util para colocar a regua no canto esquerdo. No `horizontal_ruler`, inverte o sentido da escala.
+- `flip_vertical`: no `horizontal_ruler`, coloca tracos e labels do outro lado da linha.
 
 Apesar do exemplo ser angulo, o widget nao e limitado a angulos. Voce pode usar altitude, velocidade, temperatura, sinal etc.
 

@@ -39,15 +39,21 @@ Precedencia nos binarios:
 
 - Usa `CONFIG=tx.ini` por padrao.
 - Compila `mjpeg_tx` se o binario nao existir.
-- Aceita `DEVICE`, `PORT`, `WIDTH`, `HEIGHT`, `FPS`, `QUALITY`, `PROTO`, `LISTEN_HOST`, `HOST` e `ALLOW`.
-- `ALLOW` pode conter regras separadas por virgula ou espaco.
+- Nao aceita overrides de runtime por variavel de ambiente; edite o INI.
 
 `start_receiver.sh`:
 
 - Usa `CONFIG=rx.ini` por padrao.
 - Compila `mjpeg_rx` se o binario nao existir.
-- Aceita `PROTO`, `HOST`, `LISTEN_HOST`, `PORT`, `EVENT_HOST`, `EVENT_PORT` e `JOYSTICK`.
-- Exige `EVENT_HOST` e `EVENT_PORT` juntos.
+- Nao aceita overrides de runtime por variavel de ambiente; edite o INI.
+
+`start_overlay_demo.sh`:
+
+- Inicia telemetria/eventos Node.js, `mjpeg_tx` e `mjpeg_rx`.
+- Usa `TX_CONFIG` e `RX_CONFIG` apenas para escolher arquivos INI.
+- Le `telemetry_host`, `telemetry_port`, `event_host` e `event_port` do `rx.ini` para iniciar o servidor Node.
+- Nao passa parametros de runtime para `mjpeg_tx` ou `mjpeg_rx`; os INIs tem prioridade.
+- `ASSET_COLOR` e permitido apenas para pre-processar PNG com `asset_colorize`, nao para configurar o HUD em runtime.
 
 ## Pontos de cuidado
 

@@ -264,7 +264,8 @@ void widget_draw_text(cairo_t *cr, const struct overlay_render_context *ctx,
     double top;
 
     cairo_save(cr);
-    cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+    cairo_select_font_face(cr, ctx->hud_font ? ctx->hud_font : "Monospace",
+                           CAIRO_FONT_SLANT_NORMAL,
                            CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, size);
     cairo_text_extents(cr, text, &ext);
