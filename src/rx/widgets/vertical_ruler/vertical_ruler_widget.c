@@ -73,7 +73,7 @@ static void draw_value_label(struct overlay_widget *widget, cairo_t *cr,
 {
     char text[64];
 
-    snprintf(text, sizeof(text), "%s%.2f%s",
+    widget_snprintf_dot(text, sizeof(text), "%s%.2f%s",
              widget->label ? widget->label : "",
              raw_value,
              widget->suffix ? widget->suffix : "");

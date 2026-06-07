@@ -107,7 +107,7 @@ void compass_widget_draw(struct overlay_widget *widget, cairo_t *cr,
     cairo_close_path(cr);
     cairo_stroke(cr);
 
-    snprintf(heading_text, sizeof(heading_text), "AZ %06.2f %s",
+    widget_snprintf_dot(heading_text, sizeof(heading_text), "AZ %06.2f %s",
              azimuth, cardinal_for(widget, (int)round(azimuth) % 360));
     widget_draw_text(cr, ctx, heading_text, left + w / 2.0, top + h + 18.0,
               widget->size > 0.0 ? widget->size : 14.0,
