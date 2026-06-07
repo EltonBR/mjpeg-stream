@@ -41,6 +41,7 @@ Responsavel pelo binario `mjpeg_rx`, que recebe frames JPEG por TCP ou UDP, exib
 - O zoom atua sobre o video/crop, nao sobre o HUD. O minimo e `100%` para manter a area preenchida.
 - O overlay deve ser desenhado no espaco visivel do `GtkDrawingArea` (`0,0,width,height`), nao no retangulo interno do video escalado/cortado. Isso evita que HUD saia da area visivel ou aumente junto com o zoom.
 - Fonte global do HUD vem de `hud_font`/`--hud-font` e deve passar por `overlay_state` para elementos basicos e widgets. O padrao e `Monospace`.
+- O processo do RX deve manter `LC_NUMERIC=C`. `gtk_disable_setlocale()` precisa ser chamado antes de `gtk_init()` para evitar que GTK restaure uma locale com virgula decimal; JSON de eventos e numeros do HUD precisam usar `.`.
 - A camada `dim_color`/`dim_alpha` e desenhada em `overlay_draw` depois do video e antes de elementos/widgets do HUD. Padrao: preto com alpha `0.20`; `dim_alpha=0` desativa.
 - A toolbar do RX pode ajustar `dim_alpha` em runtime via slider. Esse ajuste nao persiste no INI; o valor inicial sempre vem de config/CLI.
 - Atalhos locais de zoom e `dim_alpha` vem de `rx.ini`/CLI por nomes GDK. `dim_alpha_up_key` e `dim_alpha_down_key` ficam vazios por padrao; quando configurados, use `dim_alpha_step`.

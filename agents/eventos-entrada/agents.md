@@ -27,6 +27,7 @@ Responsavel por capturar teclado, mouse e joystick no receptor GTK e enviar even
 - Eventos de mouse sao capturados somente no `GtkDrawingArea`; toolbar e botoes de zoom nao devem enviar mouse ao servidor.
 - Em eventos de mouse, `x` e `y` sao coordenadas relativas normalizadas da area da imagem (`0.0` a `1.0`). `pixel_x` e `pixel_y` mantem a posicao em pixels dentro dessa area.
 - Atalhos locais configurados para zoom e `dim_alpha` sao consumidos pela UI; nao envie `keydown`/`keyup`/`keypress` desses atalhos ao servidor.
+- Eventos JSON sao montados com `snprintf`; o RX deve manter `LC_NUMERIC=C` para que decimais usem `.`. Locale com virgula decimal gera JSON invalido.
 
 ## Exemplos
 
@@ -56,6 +57,7 @@ Responsavel por capturar teclado, mouse e joystick no receptor GTK e enviar even
 ## Pontos de cuidado
 
 - O JSON e montado com `snprintf`; se nomes de tecla tiverem aspas ou barras, hoje nao ha escaping completo.
+- Nao remova `LC_NUMERIC=C` do RX sem trocar a montagem de JSON por uma API que serialize numeros independente de locale.
 - Joystick usa API Linux `linux/joystick.h`; nao e portavel para outros sistemas sem adaptacao.
 - A leitura de joystick e non-blocking e dorme 10 ms quando nao ha evento.
 - O cleanup precisa setar `app->stopping` antes de join da thread de joystick.

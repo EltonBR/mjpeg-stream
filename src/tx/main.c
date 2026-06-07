@@ -73,13 +73,13 @@ int main(int argc, char **argv)
     unsigned int frame_id = 1;
     int exit_code = 0;
 
+    (void)setlocale(LC_ALL, "");
+    (void)setlocale(LC_NUMERIC, "C");
+
     if (tx_parse_args(argc, argv, &cfg) < 0) {
         tx_usage(argv[0]);
         return 2;
     }
-
-    /* Force global locale to en_US to ensure decimal point is '.' */
-    (void)setlocale(LC_ALL, "en_US.UTF-8");
 
     signal(SIGINT, on_signal);
     signal(SIGTERM, on_signal);

@@ -18,13 +18,14 @@ int main(int argc, char **argv)
     struct rx_app app;
     GtkWidget *window;
 
+    (void)setlocale(LC_ALL, "");
+    (void)setlocale(LC_NUMERIC, "C");
+    gtk_disable_setlocale();
+
     if (rx_parse_args(argc, argv, &cfg) < 0) {
         rx_usage(argv[0]);
         return 2;
     }
-
-    /* Force global locale to en_US to ensure decimal point is '.' */
-    (void)setlocale(LC_ALL, "en_US.UTF-8");
 
     rx_app_init(&app, cfg.use_udp, cfg.joystick_device, cfg.joystick_enabled,
                 cfg.lock_aspect, cfg.zoom_in_key, cfg.zoom_out_key,
