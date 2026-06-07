@@ -3,23 +3,37 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 struct overlay_widget *compass_widget_parse(struct json_object *obj)
 {
     struct overlay_widget *widget = widget_base(obj, WIDGET_COMPASS);
+    struct json_object *labels;
+    size_t i;
+
     if (widget) {
         widget->azimuth_expr = widget_dup_json_string(obj, "azimuth", "{azimuth}");
+        if (widget_json_get_obj(obj, "labels", &labels) &&
+            json_object_get_type(labels) == json_type_array &&
+            json_object_array_length(labels) == 8) {
+            for (i = 0; i < 8; i++) {
+                struct json_object *label = json_object_array_get_idx(labels, i);
+                if (json_object_get_type(label) == json_type_string) {
+                    widget->compass_labels[i] = strdup(json_object_get_string(label));
+                }
+            }
+        }
     }
     return widget;
 }
 
-static const char *cardinal_for(int heading)
+static const char *cardinal_for(const struct overlay_widget *widget, int heading)
 {
     static const char *names[] = {
         "N", "NE", "E", "SE", "S", "SW", "W", "NW"
     };
     int idx = (int)floor((heading + 22.5) / 45.0) & 7;
-    return names[idx];
+    return widget->compass_labels[idx] ? widget->compass_labels[idx] : names[idx];
 }
 
 void compass_widget_draw(struct overlay_widget *widget, cairo_t *cr,
@@ -74,9 +88,9 @@ void compass_widget_draw(struct overlay_widget *widget, cairo_t *cr,
         cairo_line_to(cr, tx, top + h * 0.70 - tick_h);
         cairo_stroke(cr);
         if (normalized % 30 == 0) {
-            char label[8];
+            char label[32];
             if (normalized % 90 == 0) {
-                snprintf(label, sizeof(label), "%s", cardinal_for(normalized));
+                snprintf(label, sizeof(label), "%s", cardinal_for(widget, normalized));
             } else {
                 snprintf(label, sizeof(label), "%03d", normalized);
             }
@@ -94,7 +108,7 @@ void compass_widget_draw(struct overlay_widget *widget, cairo_t *cr,
     cairo_stroke(cr);
 
     snprintf(heading_text, sizeof(heading_text), "AZ %06.2f %s",
-             azimuth, cardinal_for((int)round(azimuth) % 360));
+             azimuth, cardinal_for(widget, (int)round(azimuth) % 360));
     widget_draw_text(cr, ctx, heading_text, left + w / 2.0, top + h + 18.0,
               widget->size > 0.0 ? widget->size : 14.0,
               widget->alpha, WIDGET_ANCHOR_CENTER);

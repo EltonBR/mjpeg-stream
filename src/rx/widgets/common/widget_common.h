@@ -55,6 +55,7 @@ struct overlay_widget {
     char *text;
     char *azimuth_expr;
     char *rotation_expr;
+    char *compass_labels[8];
     GPtrArray *items;
     GdkPixbuf *pixbuf;
     int pixbuf_failed;

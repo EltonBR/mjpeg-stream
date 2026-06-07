@@ -10,6 +10,7 @@
       "w": 0.46,
       "h": 54,
       "azimuth": "{azimuth}",
+      "labels": ["N", "NE", "L", "SE", "S", "SO", "O", "NO"],
       "size": 14,
       "alpha": 0.95,
       "z_index": 40,

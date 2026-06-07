@@ -90,6 +90,7 @@ Exemplo:
   "w": 0.46,
   "h": 54,
   "azimuth": "{azimuth}",
+  "labels": ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
   "size": 14,
   "alpha": 0.95,
   "z_index": 40,
@@ -100,11 +101,24 @@ Exemplo:
 Campos principais:
 
 - `azimuth`: valor numerico ou template. Aceita float, por exemplo `123.45`.
+- `labels`: opcional. Array com 8 textos na ordem `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`.
 - `w`, `h`: tamanho da bussola.
 - `size`: tamanho do texto.
 - `z_index`: ordem de desenho.
 
 Se `{azimuth}` nao estiver disponivel, a bussola tenta usar `{heading}` como fallback.
+
+Por padrao os labels sao em ingles:
+
+```json
+["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+```
+
+Exemplo em portugues:
+
+```json
+["N", "NE", "L", "SE", "S", "SO", "O", "NO"]
+```
 
 ## Widget `readout`
 
