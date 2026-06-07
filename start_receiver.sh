@@ -46,4 +46,25 @@ if [ "${JOYSTICK+x}" ]; then
     set -- "$@" --joystick "$JOYSTICK"
 fi
 
+if [ "${OVERLAY+x}" ]; then
+    set -- "$@" --overlay "$OVERLAY"
+fi
+if [ "${HUD_COLOR+x}" ]; then
+    set -- "$@" --hud-color "$HUD_COLOR"
+fi
+
+if [ "${TELEMETRY_ENABLED+x}" ]; then
+    case "$TELEMETRY_ENABLED" in
+        1|yes|true|on|YES|TRUE|ON)
+            set -- "$@" --telemetry-enabled
+            ;;
+    esac
+fi
+if [ "${TELEMETRY_HOST+x}" ]; then
+    set -- "$@" --telemetry-host "$TELEMETRY_HOST"
+fi
+if [ "${TELEMETRY_PORT+x}" ]; then
+    set -- "$@" --telemetry-port "$TELEMETRY_PORT"
+fi
+
 exec "$@"

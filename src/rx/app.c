@@ -16,6 +16,8 @@ void rx_app_init(struct rx_app *app, int use_udp, const char *joystick_device,
     app->joystick_device = joystick_device;
     app->joystick_enabled = joystick_enabled;
     event_sender_init(&app->events);
+    overlay_init(&app->overlay);
+    telemetry_init(&app->telemetry);
 }
 
 void rx_app_cleanup(struct rx_app *app)
@@ -25,7 +27,9 @@ void rx_app_cleanup(struct rx_app *app)
         g_thread_join(app->joystick_thread);
         app->joystick_thread = NULL;
     }
+    telemetry_close(&app->telemetry);
     event_sender_close(&app->events);
+    overlay_cleanup(&app->overlay);
 
     free(app->udp_seen);
     app->udp_seen = NULL;

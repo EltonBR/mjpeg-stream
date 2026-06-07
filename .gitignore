@@ -13,6 +13,7 @@ build/
 mjpeg_tx
 mjpeg_rx
 v4l2_discover
+asset_colorize
 
 # Debug/profiling artifacts
 *.gcda

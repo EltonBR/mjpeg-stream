@@ -2,6 +2,13 @@
 
 Projeto em C para capturar video de cameras V4L2 (`/dev/videoX`) e transmitir frames JPEG pela rede.
 
+Documentacao detalhada por funcionalidade:
+
+- [docs/README.md](docs/README.md)
+- [Overlay e widgets HUD](docs/overlay-widgets.md)
+- [Telemetria JSON Lines](docs/telemetria.md)
+- [Demo TX/RX/telemetria](docs/demo.md)
+
 ## Binarios
 
 - `mjpeg_tx`: transmissor. Captura da camera, prefere MJPEG nativo e transmite por TCP, UDP ou HTTP MJPEG.
@@ -13,7 +20,7 @@ Projeto em C para capturar video de cameras V4L2 (`/dev/videoX`) e transmitir fr
 Debian/Ubuntu:
 
 ```sh
-sudo apt-get install -y build-essential libjpeg-dev libgtk-3-dev
+sudo apt-get install -y build-essential libjpeg-dev libgtk-3-dev libjson-c-dev
 ```
 
 Build:
@@ -84,7 +91,18 @@ event_host=127.0.0.1
 event_port=6000
 joystick_enabled=true
 joystick=/dev/input/js0
+
+[overlay]
+overlay=overlay.json
+hud_color=green
+
+[telemetry]
+telemetry_enabled=true
+telemetry_host=127.0.0.1
+telemetry_port=7000
 ```
+
+Quando `overlay=overlay.json` vem do `rx.ini` e o arquivo nao existe, o receptor segue sem overlay. Quando `--overlay overlay.json` e informado na CLI, arquivo ausente e erro. `hud_color` aceita `green`, `amber` ou `#rrggbb` e afeta labels/linhas.
 
 ## Uso
 
@@ -156,6 +174,8 @@ Os scripts usam `CONFIG=tx.ini` e `CONFIG=rx.ini` por padrao. Variaveis de ambie
 CONFIG=tx-lab.ini ./start_transmitter.sh
 PORT=8080 PROTO=http ./start_transmitter.sh
 EVENT_HOST=127.0.0.1 EVENT_PORT=6000 JOYSTICK=/dev/input/js0 ./start_receiver.sh
+OVERLAY=overlay.json TELEMETRY_ENABLED=true TELEMETRY_HOST=127.0.0.1 TELEMETRY_PORT=7000 ./start_receiver.sh
+HUD_COLOR=amber ./start_overlay_demo.sh
 ```
 
 ## Controle de acesso
@@ -211,6 +231,100 @@ Exemplos:
 ```
 
 O socket de eventos permanece ativo enquanto o receptor estiver aberto. Se a conexao cair ou o servidor de controle ainda nao estiver disponivel, o receptor continua rodando e tenta reconectar automaticamente. Eventos gerados enquanto nao ha conexao ativa sao descartados.
+
+## Overlay/HUD do receptor
+
+`mjpeg_rx` pode desenhar overlays sobre o video usando `GtkDrawingArea` e Cairo. Sem `overlay.json`, o receptor continua exibindo apenas o video.
+
+CLI:
+
+```sh
+./mjpeg_rx --tcp --host 127.0.0.1 --port 5000 \
+  --overlay overlay.json --hud-color amber \
+  --telemetry-enabled --telemetry-host 127.0.0.1 --telemetry-port 7000
+```
+
+Exemplo `overlay.json`:
+
+```json
+{
+  "assets_dir": "overlays",
+  "widgets": [
+    {"id":"compass","type":"compass","x":0.5,"y":12,"anchor":"top-center","w":0.46,"h":54,"azimuth":"{azimuth}","size":14,"z_index":40,"visible":true},
+    {"id":"crosshair","type":"image","file":"crosshair.png","x":0.5,"y":0.5,"anchor":"center","w":72,"h":72,"alpha":0.9,"rotation":"{rotate}","z_index":20,"visible":true}
+  ]
+}
+```
+
+Widgets suportados:
+
+- `compass`: bussola estilo HUD no topo ou em qualquer posicao; usa `azimuth`, por exemplo `{azimuth}`.
+- `readout`: grupo de linhas de texto com `items`, cada item com `label` e `value`.
+- `status`: texto simples com templates.
+- `image`: PNG com alpha; aceita `rotation`, inclusive via template como `{rotate}`.
+
+Elementos basicos continuam aceitos via `elements` para compatibilidade:
+
+- `image`: `file`, `x`, `y`, `w`, `h`, `anchor`, `rotation`, `alpha`, `visible`, `z_index`.
+- `label`: `text`, `x`, `y`, `size`, `color`, `alpha`, `visible`, `z_index`.
+- `line`: `x1`, `y1`, `x2`, `y2`, `width`, `color`, `alpha`, `visible`, `z_index`.
+
+Coordenadas entre `0.0` e `1.0` sao relativas ao frame desenhado; valores maiores que `1` sao pixels. Anchors aceitos: `top-left`, `top-center`, `top-right`, `bottom-left`, `bottom-right`, `center`. Imagens PNG sao carregadas de `assets_dir`; paths absolutos e paths com `..` sao rejeitados.
+
+A cor global do HUD vem de `hud_color` no `rx.ini` ou de `--hud-color`. Labels e linhas usam essa cor. Imagens PNG sao carregadas como estao no arquivo; para pintar assets, use o binario separado `asset_colorize`.
+
+Colorir um PNG:
+
+```sh
+make asset_colorize
+./asset_colorize --color amber overlays/crosshair-original.png overlays/crosshair.png
+./asset_colorize --color green overlays/crosshair-original.png overlays/crosshair.png
+./asset_colorize --color '#00ccff' overlays/crosshair-original.png overlays/crosshair.png
+```
+
+O `asset_colorize` preserva alpha e usa os niveis de preto/branco do PNG para variar a intensidade da cor. Ele tambem tenta lidar com PNGs de linhas pretas ou brancas: quando o asset e quase todo escuro ou quase todo claro, a parte visivel recebe a cor cheia.
+
+### Telemetria JSON Lines
+
+O cliente de telemetria conecta por TCP e tenta reconectar se a conexao cair. Cada linha deve ser um JSON.
+
+Atualizar variaveis usadas em templates:
+
+```json
+{"type":"telemetry","angle":32.5,"heading":180,"battery":11.8}
+```
+
+Alterar elemento:
+
+```json
+{"type":"set","id":"crosshair","visible":false}
+{"type":"set","id":"direction_arrow","rotation":245}
+```
+
+Criar ou substituir elemento:
+
+```json
+{"type":"upsert","id":"target_1","element":{"type":"image","file":"target.png","x":0.72,"y":0.44,"anchor":"center","w":32,"h":32,"rotation":0,"alpha":1.0,"z_index":30,"visible":true}}
+```
+
+Remover elemento:
+
+```json
+{"type":"delete","id":"target_1"}
+```
+
+Teste simples com `nc`:
+
+```sh
+nc -l 7000
+```
+
+Depois envie linhas como:
+
+```json
+{"type":"telemetry","angle":32.5,"heading":180,"battery":11.8}
+{"type":"set","id":"direction_arrow","rotation":245}
+```
 
 ## Protocolos
 

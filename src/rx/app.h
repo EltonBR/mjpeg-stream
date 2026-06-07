@@ -2,12 +2,15 @@
 #define MJPEG_RX_APP_H
 
 #include "event_sender.h"
+#include "overlay.h"
+#include "telemetry.h"
 
 #include <gtk/gtk.h>
 #include <stdint.h>
 
 struct rx_app {
     GtkWidget *image;
+    GtkWidget *drawing_area;
     GtkWidget *zoom_label;
     GdkPixbuf *last_pixbuf;
     double zoom;
@@ -20,6 +23,8 @@ struct rx_app {
     uint16_t udp_received;
     unsigned char *udp_seen;
     struct event_sender events;
+    struct overlay_state overlay;
+    struct telemetry_client telemetry;
     const char *joystick_device;
     GThread *joystick_thread;
     int joystick_enabled;

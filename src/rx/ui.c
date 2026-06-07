@@ -20,32 +20,19 @@ static void update_zoom_label(struct rx_app *app)
 
 static void update_image(struct rx_app *app)
 {
-    GdkPixbuf *scaled;
-    int width;
-    int height;
-
-    if (!app->last_pixbuf) {
-        return;
+    if (app->last_pixbuf && app->drawing_area) {
+        int width = (int)(gdk_pixbuf_get_width(app->last_pixbuf) * app->zoom);
+        int height = (int)(gdk_pixbuf_get_height(app->last_pixbuf) * app->zoom);
+        if (width < 1) {
+            width = 1;
+        }
+        if (height < 1) {
+            height = 1;
+        }
+        gtk_widget_set_size_request(app->drawing_area, width, height);
     }
-
-    width = (int)(gdk_pixbuf_get_width(app->last_pixbuf) * app->zoom);
-    height = (int)(gdk_pixbuf_get_height(app->last_pixbuf) * app->zoom);
-    if (width < 1) {
-        width = 1;
-    }
-    if (height < 1) {
-        height = 1;
-    }
-
-    scaled = gdk_pixbuf_scale_simple(app->last_pixbuf, width, height,
-                                     GDK_INTERP_BILINEAR);
-    if (!scaled) {
-        return;
-    }
-
-    gtk_image_set_from_pixbuf(GTK_IMAGE(app->image), scaled);
-    g_object_unref(scaled);
     update_zoom_label(app);
+    rx_queue_redraw(app);
 }
 
 static void on_zoom_in(GtkButton *button, gpointer data)
@@ -115,6 +102,50 @@ static gboolean show_frame(gpointer data)
     return G_SOURCE_REMOVE;
 }
 
+static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data)
+{
+    struct rx_app *app = data;
+    int widget_w = gtk_widget_get_allocated_width(widget);
+    int widget_h = gtk_widget_get_allocated_height(widget);
+    int frame_w;
+    int frame_h;
+    double draw_w;
+    double draw_h;
+    double draw_x;
+    double draw_y;
+
+    cairo_set_source_rgb(cr, 0.04, 0.04, 0.04);
+    cairo_paint(cr);
+
+    if (!app->last_pixbuf) {
+        return FALSE;
+    }
+
+    frame_w = gdk_pixbuf_get_width(app->last_pixbuf);
+    frame_h = gdk_pixbuf_get_height(app->last_pixbuf);
+    draw_w = frame_w * app->zoom;
+    draw_h = frame_h * app->zoom;
+    draw_x = (widget_w - draw_w) / 2.0;
+    draw_y = (widget_h - draw_h) / 2.0;
+
+    cairo_save(cr);
+    cairo_translate(cr, draw_x, draw_y);
+    cairo_scale(cr, app->zoom, app->zoom);
+    gdk_cairo_set_source_pixbuf(cr, app->last_pixbuf, 0, 0);
+    cairo_paint(cr);
+    cairo_restore(cr);
+
+    overlay_draw(&app->overlay, cr, draw_x, draw_y, draw_w, draw_h);
+    return FALSE;
+}
+
+void rx_queue_redraw(struct rx_app *app)
+{
+    if (app->drawing_area) {
+        gtk_widget_queue_draw(app->drawing_area);
+    }
+}
+
 void rx_queue_frame(struct rx_app *app, const unsigned char *data, size_t len)
 {
     struct frame_msg *msg = malloc(sizeof(*msg));
@@ -155,7 +186,6 @@ GtkWidget *rx_create_window(struct rx_app *app)
     GtkWidget *zoom_out;
     GtkWidget *zoom_in;
     GtkWidget *scroller;
-    GtkWidget *viewport;
     GtkWidget *label;
 
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -187,21 +217,22 @@ GtkWidget *rx_create_window(struct rx_app *app)
 
     gtk_box_pack_start(GTK_BOX(box), toolbar, FALSE, FALSE, 0);
 
-    app->image = gtk_image_new();
-    gtk_widget_set_hexpand(app->image, TRUE);
-    gtk_widget_set_vexpand(app->image, TRUE);
-    gtk_widget_set_halign(app->image, GTK_ALIGN_CENTER);
-    gtk_widget_set_valign(app->image, GTK_ALIGN_CENTER);
+    app->drawing_area = gtk_drawing_area_new();
+    app->image = app->drawing_area;
+    gtk_widget_set_hexpand(app->drawing_area, TRUE);
+    gtk_widget_set_vexpand(app->drawing_area, TRUE);
+    gtk_widget_set_size_request(app->drawing_area, 800, 600);
+    gtk_widget_add_events(app->drawing_area,
+                          GDK_POINTER_MOTION_MASK |
+                          GDK_BUTTON_PRESS_MASK |
+                          GDK_BUTTON_RELEASE_MASK);
+    g_signal_connect(app->drawing_area, "draw", G_CALLBACK(on_draw), app);
 
     scroller = gtk_scrolled_window_new(NULL, NULL);
     gtk_widget_set_hexpand(scroller, TRUE);
     gtk_widget_set_vexpand(scroller, TRUE);
 
-    viewport = gtk_viewport_new(NULL, NULL);
-    gtk_widget_set_hexpand(viewport, TRUE);
-    gtk_widget_set_vexpand(viewport, TRUE);
-    gtk_container_add(GTK_CONTAINER(viewport), app->image);
-    gtk_container_add(GTK_CONTAINER(scroller), viewport);
+    gtk_container_add(GTK_CONTAINER(scroller), app->drawing_area);
     gtk_box_pack_start(GTK_BOX(box), scroller, TRUE, TRUE, 0);
 
     return window;

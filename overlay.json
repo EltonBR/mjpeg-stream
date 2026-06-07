@@ -1,0 +1,75 @@
+{
+  "assets_dir": "overlays",
+  "widgets": [
+    {
+      "id": "compass",
+      "type": "compass",
+      "x": 0.5,
+      "y": 12,
+      "anchor": "top-center",
+      "w": 0.46,
+      "h": 54,
+      "azimuth": "{azimuth}",
+      "size": 14,
+      "alpha": 0.95,
+      "z_index": 40,
+      "visible": true
+    },
+    {
+      "id": "crosshair",
+      "type": "image",
+      "file": "crosshair.png",
+      "x": 0.5,
+      "y": 0.5,
+      "anchor": "center",
+      "w": 72,
+      "h": 72,
+      "alpha": 0.9,
+      "rotation": "0",
+      "z_index": 20,
+      "visible": true
+    },
+    {
+      "id": "left_readout",
+      "type": "readout",
+      "x": 20,
+      "y": 24,
+      "anchor": "top-left",
+      "size": 18,
+      "alpha": 1.0,
+      "z_index": 30,
+      "visible": true,
+      "items": [
+        {"label": "ANG: ", "value": "{angle}"},
+        {"label": "AZ: ", "value": "{azimuth}"},
+        {"label": "HDG: ", "value": "{heading}"},
+        {"label": "BAT: ", "value": "{battery}V"},
+        {"label": "ROT: ", "value": "{rotate}"}
+      ]
+    },
+    {
+      "id": "status",
+      "type": "status",
+      "text": "MJPEG RX HUD",
+      "x": 0.98,
+      "y": 24,
+      "anchor": "top-right",
+      "size": 16,
+      "alpha": 0.9,
+      "z_index": 30,
+      "visible": true
+    },
+    {
+      "id": "datetime",
+      "type": "status",
+      "text": "{date} {time}",
+      "x": 0.98,
+      "y": 50,
+      "anchor": "top-right",
+      "size": 16,
+      "alpha": 0.9,
+      "z_index": 30,
+      "visible": true
+    }
+  ]
+}
