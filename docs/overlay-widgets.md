@@ -120,6 +120,48 @@ Exemplo em portugues:
 ["N", "NE", "L", "SE", "S", "SO", "O", "NO"]
 ```
 
+## Widget `vertical_ruler`
+
+Regua vertical estilo HUD. O valor atual fica no centro; os tracos sobem ou descem conforme a telemetria muda.
+
+Exemplo para angulo:
+
+```json
+{
+  "id": "angle_ruler",
+  "type": "vertical_ruler",
+  "x": 0.08,
+  "y": 0.5,
+  "anchor": "center",
+  "w": 96,
+  "h": 0.46,
+  "value": "{angle}",
+  "min": -90,
+  "max": 90,
+  "window": 40,
+  "major_step": 10,
+  "minor_step": 1,
+  "label": "ANG ",
+  "suffix": "\u00b0",
+  "size": 13,
+  "alpha": 0.95,
+  "z_index": 35,
+  "visible": true
+}
+```
+
+Campos:
+
+- `value`: valor numerico ou template, como `{angle}`.
+- `min`, `max`: range aceito.
+- `window`: intervalo visivel em torno do valor atual.
+- `major_step`: passo dos tracos maiores, por exemplo `10`.
+- `minor_step`: passo dos tracos menores, por exemplo `1`.
+- `label`: prefixo do valor central.
+- `suffix`: posfixo do valor central, por exemplo `\u00b0`.
+
+Apesar do exemplo ser angulo, o widget nao e limitado a angulos. Voce pode usar altitude, velocidade, temperatura, sinal etc.
+
 ## Widget `readout`
 
 Grupo de linhas de texto, bom para telemetria lateral.

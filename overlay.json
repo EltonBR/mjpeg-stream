@@ -31,6 +31,27 @@
       "visible": true
     },
     {
+      "id": "angle_ruler",
+      "type": "vertical_ruler",
+      "x": 0.08,
+      "y": 0.5,
+      "anchor": "center",
+      "w": 50,
+      "h": 0.46,
+      "value": "{angle}",
+      "min": -90,
+      "max": 90,
+      "window": 40,
+      "major_step": 10,
+      "minor_step": 1,
+      "label": "ANG ",
+      "suffix": "\u00b0",
+      "size": 13,
+      "alpha": 0.95,
+      "z_index": 35,
+      "visible": true
+    },
+    {
       "id": "left_readout",
       "type": "readout",
       "x": 20,

@@ -26,6 +26,9 @@ void overlay_widget_free(gpointer data)
     free(widget->text);
     free(widget->azimuth_expr);
     free(widget->rotation_expr);
+    free(widget->value_expr);
+    free(widget->label);
+    free(widget->suffix);
     for (int i = 0; i < 8; i++) {
         free(widget->compass_labels[i]);
     }

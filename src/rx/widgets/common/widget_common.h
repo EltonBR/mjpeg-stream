@@ -9,7 +9,8 @@ enum widget_type {
     WIDGET_COMPASS,
     WIDGET_READOUT,
     WIDGET_STATUS,
-    WIDGET_IMAGE
+    WIDGET_IMAGE,
+    WIDGET_VERTICAL_RULER
 };
 
 enum widget_anchor {
@@ -55,6 +56,14 @@ struct overlay_widget {
     char *text;
     char *azimuth_expr;
     char *rotation_expr;
+    char *value_expr;
+    char *label;
+    char *suffix;
+    double min_value;
+    double max_value;
+    double window;
+    double major_step;
+    double minor_step;
     char *compass_labels[8];
     GPtrArray *items;
     GdkPixbuf *pixbuf;

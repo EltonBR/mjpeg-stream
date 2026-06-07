@@ -36,6 +36,7 @@ RX_OBJS = \
 	$(BUILD_DIR)/rx/widgets/readout/readout_widget.o \
 	$(BUILD_DIR)/rx/widgets/status/status_widget.o \
 	$(BUILD_DIR)/rx/widgets/image/image_widget.o \
+	$(BUILD_DIR)/rx/widgets/vertical_ruler/vertical_ruler_widget.o \
 	$(BUILD_DIR)/rx/telemetry.o \
 	$(COMMON_OBJS)
 DISCOVER_OBJS = $(BUILD_DIR)/discover/main.o
@@ -137,6 +138,10 @@ $(BUILD_DIR)/rx/widgets/status/status_widget.o: src/rx/widgets/status/status_wid
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(GTK_CFLAGS) $(JSON_CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/rx/widgets/image/image_widget.o: src/rx/widgets/image/image_widget.c src/rx/widgets/image/image_widget.h src/rx/widgets/common/widget_common.h
+	mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(GTK_CFLAGS) $(JSON_CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/rx/widgets/vertical_ruler/vertical_ruler_widget.o: src/rx/widgets/vertical_ruler/vertical_ruler_widget.c src/rx/widgets/vertical_ruler/vertical_ruler_widget.h src/rx/widgets/common/widget_common.h
 	mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(GTK_CFLAGS) $(JSON_CFLAGS) -c -o $@ $<
 

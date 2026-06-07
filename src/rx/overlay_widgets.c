@@ -4,6 +4,7 @@
 #include "widgets/image/image_widget.h"
 #include "widgets/readout/readout_widget.h"
 #include "widgets/status/status_widget.h"
+#include "widgets/vertical_ruler/vertical_ruler_widget.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -39,6 +40,9 @@ static struct overlay_widget *parse_widget(struct json_object *obj)
     }
     if (strcmp(type, "image") == 0) {
         return image_widget_parse(obj);
+    }
+    if (strcmp(type, "vertical_ruler") == 0) {
+        return vertical_ruler_widget_parse(obj);
     }
     fprintf(stderr, "overlay: widget type desconhecido ignorado: %s\n", type);
     return NULL;
@@ -98,6 +102,8 @@ void overlay_widgets_draw(GPtrArray *widgets, cairo_t *cr,
             status_widget_draw(widget, cr, ctx);
         } else if (widget->type == WIDGET_IMAGE) {
             image_widget_draw(widget, cr, ctx);
+        } else if (widget->type == WIDGET_VERTICAL_RULER) {
+            vertical_ruler_widget_draw(widget, cr, ctx);
         }
     }
 
