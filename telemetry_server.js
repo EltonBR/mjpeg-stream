@@ -44,6 +44,7 @@ function telemetryPayload() {
   return {
     type: 'telemetry',
     angle: Number(((seconds * 8) % 360).toFixed(2)),
+    rumero: "65.40",
     rotate: Number(((seconds * 8) % 360).toFixed(0)),
     azimuth: Number(((seconds * 10) % 360).toFixed(2)),
     heading: Math.trunc((seconds * 15) % 360),
