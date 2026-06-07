@@ -21,6 +21,11 @@ static void rx_defaults(struct rx_config *cfg)
     cfg->hud_font = "Monospace";
     cfg->dim_color = "#000000";
     cfg->dim_alpha = 0.20;
+    cfg->zoom_in_key = "plus";
+    cfg->zoom_out_key = "minus";
+    cfg->dim_alpha_up_key = "";
+    cfg->dim_alpha_down_key = "";
+    cfg->dim_alpha_step = 0.05;
     cfg->telemetry_host = "127.0.0.1";
     cfg->telemetry_port = "7000";
     cfg->events_enabled = 0;
@@ -79,6 +84,16 @@ static int rx_ini_handler(void *user, const char *section,
         cfg->dim_color = strdup(value);
     } else if (strcmp(key, "dim_alpha") == 0) {
         cfg->dim_alpha = strtod(value, NULL);
+    } else if (strcmp(key, "zoom_in_key") == 0) {
+        cfg->zoom_in_key = strdup(value);
+    } else if (strcmp(key, "zoom_out_key") == 0) {
+        cfg->zoom_out_key = strdup(value);
+    } else if (strcmp(key, "dim_alpha_up_key") == 0) {
+        cfg->dim_alpha_up_key = strdup(value);
+    } else if (strcmp(key, "dim_alpha_down_key") == 0) {
+        cfg->dim_alpha_down_key = strdup(value);
+    } else if (strcmp(key, "dim_alpha_step") == 0) {
+        cfg->dim_alpha_step = strtod(value, NULL);
     } else if (strcmp(key, "telemetry_enabled") == 0) {
         cfg->telemetry_enabled = parse_bool(value);
     } else if (strcmp(key, "telemetry_host") == 0) {
@@ -99,7 +114,7 @@ void rx_usage(const char *argv0)
             "Eventos: --event-host 127.0.0.1|::1 --event-port 6000 [--joystick /dev/input/js0]\n"
             "Overlay: --overlay overlay.json [--hud-color green|amber|#rrggbb] [--hud-font Monospace] [--dim-color #000000 --dim-alpha 0.20]\n"
             "Telemetria: [--telemetry-enabled --telemetry-host 127.0.0.1 --telemetry-port 7000]\n"
-            "Janela: [--lock-aspect]\n",
+            "Janela: [--lock-aspect] [--zoom-in-key plus --zoom-out-key minus] [--dim-alpha-up-key Page_Up --dim-alpha-down-key Page_Down --dim-alpha-step 0.05]\n",
             argv0, argv0);
 }
 
@@ -160,6 +175,16 @@ int rx_parse_args(int argc, char **argv, struct rx_config *cfg)
             cfg->dim_color = argv[++i];
         } else if (strcmp(argv[i], "--dim-alpha") == 0 && i + 1 < argc) {
             cfg->dim_alpha = strtod(argv[++i], NULL);
+        } else if (strcmp(argv[i], "--zoom-in-key") == 0 && i + 1 < argc) {
+            cfg->zoom_in_key = argv[++i];
+        } else if (strcmp(argv[i], "--zoom-out-key") == 0 && i + 1 < argc) {
+            cfg->zoom_out_key = argv[++i];
+        } else if (strcmp(argv[i], "--dim-alpha-up-key") == 0 && i + 1 < argc) {
+            cfg->dim_alpha_up_key = argv[++i];
+        } else if (strcmp(argv[i], "--dim-alpha-down-key") == 0 && i + 1 < argc) {
+            cfg->dim_alpha_down_key = argv[++i];
+        } else if (strcmp(argv[i], "--dim-alpha-step") == 0 && i + 1 < argc) {
+            cfg->dim_alpha_step = strtod(argv[++i], NULL);
         } else if (strcmp(argv[i], "--telemetry-enabled") == 0) {
             cfg->telemetry_enabled = 1;
         } else if (strcmp(argv[i], "--telemetry-host") == 0 && i + 1 < argc) {

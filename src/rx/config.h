@@ -14,6 +14,11 @@ struct rx_config {
     const char *hud_font;
     const char *dim_color;
     double dim_alpha;
+    const char *zoom_in_key;
+    const char *zoom_out_key;
+    const char *dim_alpha_up_key;
+    const char *dim_alpha_down_key;
+    double dim_alpha_step;
     const char *telemetry_host;
     const char *telemetry_port;
     int events_enabled;

@@ -29,9 +29,16 @@ No `rx.ini`:
 ```ini
 [window]
 lock_aspect=true
+zoom_in_key=plus
+zoom_out_key=minus
+dim_alpha_up_key=
+dim_alpha_down_key=
+dim_alpha_step=0.05
 ```
 
 A proporcao e aplicada ao `GtkDrawingArea` por hints de geometria do GTK, compensando a toolbar da janela. Quando `lock_aspect` esta ativo, maximizar a janela e desabilitado porque a area de imagem deixaria de obedecer a proporcao do frame.
+
+`zoom_in_key`, `zoom_out_key`, `dim_alpha_up_key` e `dim_alpha_down_key` usam nomes GDK (`plus`, `minus`, `equal`, `KP_Add`, `Page_Up`, etc.) e aceitam multiplas teclas separadas por virgula. Atalhos locais sao consumidos pela UI e nao sao enviados ao servidor de eventos. Por padrao o alpha nao tem binding; use o slider `Dim` ou configure as teclas no INI/CLI.
 
 ## Uso UDP
 
@@ -65,6 +72,10 @@ O receptor pode enviar eventos de teclado, mouse e joystick para um servidor TCP
   --joystick /dev/input/js0
 ```
 
-Eventos de mouse sao capturados somente sobre a area da imagem. Cliques na toolbar, incluindo zoom, nao sao enviados. `x` e `y` sao relativos normalizados de `0.0` a `1.0`; `pixel_x` e `pixel_y` informam a posicao em pixels dentro da area da imagem.
+Eventos de mouse sao capturados somente sobre a area da imagem. Cliques na toolbar, incluindo zoom, nao sao enviados. `x` e `y` sao relativos normalizados de `0.0` a `1.0`; `pixel_x` e `pixel_y` informam a posicao em pixels dentro da area da imagem. Scroll envia `type:"scroll"` com `direction`, `delta_x` e `delta_y`.
 
 Eventos de pressionamento usam pares `down/up` e um evento `press` no release: teclado envia `keydown`, `keyup`, `keypress`; mouse envia `mousedown`, `mouseup`, `mousepress`; joystick button envia `buttondown`, `buttonup`, `buttonpress`.
+
+## Controle de Dim
+
+A toolbar do receptor tem um slider `Dim` para ajustar `dim_alpha` em runtime. O valor inicial vem do `rx.ini`; ajustes pela UI nao alteram o arquivo. `dim_alpha_step` define o passo usado apenas quando atalhos de alpha estiverem configurados.

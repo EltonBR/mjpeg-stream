@@ -12,8 +12,15 @@ struct rx_app {
     GtkWidget *image;
     GtkWidget *drawing_area;
     GtkWidget *zoom_label;
+    GtkWidget *dim_label;
+    GtkWidget *dim_scale;
     GdkPixbuf *last_pixbuf;
     double zoom;
+    const char *zoom_in_key;
+    const char *zoom_out_key;
+    const char *dim_alpha_up_key;
+    const char *dim_alpha_down_key;
+    double dim_alpha_step;
     int lock_aspect;
     int aspect_frame_w;
     int aspect_frame_h;
@@ -35,7 +42,11 @@ struct rx_app {
 };
 
 void rx_app_init(struct rx_app *app, int use_udp, const char *joystick_device,
-                 int joystick_enabled, int lock_aspect);
+                 int joystick_enabled, int lock_aspect,
+                 const char *zoom_in_key, const char *zoom_out_key,
+                 const char *dim_alpha_up_key,
+                 const char *dim_alpha_down_key,
+                 double dim_alpha_step);
 void rx_app_cleanup(struct rx_app *app);
 
 #endif

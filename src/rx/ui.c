@@ -12,6 +12,7 @@ struct frame_msg {
 };
 
 static void apply_area_aspect_hint(struct rx_app *app);
+static void update_dim_label(struct rx_app *app, double alpha);
 
 static void update_zoom_label(struct rx_app *app)
 {
@@ -55,10 +56,8 @@ static void apply_area_aspect_hint(struct rx_app *app)
                                   &geometry, GDK_HINT_ASPECT);
 }
 
-static void on_zoom_in(GtkButton *button, gpointer data)
+void rx_zoom_in(struct rx_app *app)
 {
-    struct rx_app *app = data;
-    (void)button;
     if (app->zoom < 4.0) {
         app->zoom *= 1.10;
         if (app->zoom > 4.0) {
@@ -68,10 +67,8 @@ static void on_zoom_in(GtkButton *button, gpointer data)
     }
 }
 
-static void on_zoom_out(GtkButton *button, gpointer data)
+void rx_zoom_out(struct rx_app *app)
 {
-    struct rx_app *app = data;
-    (void)button;
     if (app->zoom > 1.0) {
         app->zoom /= 1.10;
         if (app->zoom < 1.0) {
@@ -79,6 +76,36 @@ static void on_zoom_out(GtkButton *button, gpointer data)
         }
         update_image(app);
     }
+}
+
+void rx_adjust_dim_alpha(struct rx_app *app, double delta)
+{
+    double alpha = overlay_get_dim_alpha(&app->overlay) + delta;
+
+    if (alpha < 0.0) {
+        alpha = 0.0;
+    } else if (alpha > 1.0) {
+        alpha = 1.0;
+    }
+
+    overlay_set_dim_alpha(&app->overlay, alpha);
+    update_dim_label(app, alpha);
+    if (app->dim_scale) {
+        gtk_range_set_value(GTK_RANGE(app->dim_scale), alpha);
+    }
+    rx_queue_redraw(app);
+}
+
+static void on_zoom_in(GtkButton *button, gpointer data)
+{
+    (void)button;
+    rx_zoom_in(data);
+}
+
+static void on_zoom_out(GtkButton *button, gpointer data)
+{
+    (void)button;
+    rx_zoom_out(data);
 }
 
 static gboolean show_frame(gpointer data)
@@ -250,6 +277,27 @@ static gboolean on_window_state_event(GtkWidget *widget,
     return FALSE;
 }
 
+static void update_dim_label(struct rx_app *app, double alpha)
+{
+    char text[32];
+
+    if (!app->dim_label) {
+        return;
+    }
+    snprintf(text, sizeof(text), "Dim %.0f%%", alpha * 100.0);
+    gtk_label_set_text(GTK_LABEL(app->dim_label), text);
+}
+
+static void on_dim_scale_changed(GtkRange *range, gpointer data)
+{
+    struct rx_app *app = data;
+    double alpha = gtk_range_get_value(range);
+
+    overlay_set_dim_alpha(&app->overlay, alpha);
+    update_dim_label(app, alpha);
+    rx_queue_redraw(app);
+}
+
 GtkWidget *rx_create_window(struct rx_app *app)
 {
     GtkWidget *window;
@@ -257,7 +305,9 @@ GtkWidget *rx_create_window(struct rx_app *app)
     GtkWidget *toolbar;
     GtkWidget *zoom_out;
     GtkWidget *zoom_in;
+    GtkWidget *dim_box;
     GtkWidget *label;
+    double dim_alpha;
 
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(window), "MJPEG Receiver");
@@ -286,8 +336,25 @@ GtkWidget *rx_create_window(struct rx_app *app)
     app->zoom_label = gtk_label_new("100%");
     gtk_box_pack_end(GTK_BOX(toolbar), app->zoom_label, FALSE, FALSE, 0);
 
+    dim_alpha = overlay_get_dim_alpha(&app->overlay);
+    dim_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+    app->dim_label = gtk_label_new(NULL);
+    update_dim_label(app, dim_alpha);
+    gtk_box_pack_start(GTK_BOX(dim_box), app->dim_label, FALSE, FALSE, 0);
+
+    app->dim_scale = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL,
+                                              0.0, 1.0, 0.01);
+    gtk_widget_set_tooltip_text(app->dim_scale, "Alpha da camada de leitura do HUD");
+    gtk_scale_set_draw_value(GTK_SCALE(app->dim_scale), FALSE);
+    gtk_range_set_value(GTK_RANGE(app->dim_scale), dim_alpha);
+    gtk_widget_set_size_request(app->dim_scale, 110, -1);
+    gtk_box_pack_start(GTK_BOX(dim_box), app->dim_scale, FALSE, FALSE, 0);
+    gtk_box_pack_end(GTK_BOX(toolbar), dim_box, FALSE, FALSE, 0);
+
     g_signal_connect(zoom_in, "clicked", G_CALLBACK(on_zoom_in), app);
     g_signal_connect(zoom_out, "clicked", G_CALLBACK(on_zoom_out), app);
+    g_signal_connect(app->dim_scale, "value-changed",
+                     G_CALLBACK(on_dim_scale_changed), app);
 
     gtk_box_pack_start(GTK_BOX(box), toolbar, FALSE, FALSE, 0);
 

@@ -5,7 +5,11 @@
 #include <unistd.h>
 
 void rx_app_init(struct rx_app *app, int use_udp, const char *joystick_device,
-                 int joystick_enabled, int lock_aspect)
+                 int joystick_enabled, int lock_aspect,
+                 const char *zoom_in_key, const char *zoom_out_key,
+                 const char *dim_alpha_up_key,
+                 const char *dim_alpha_down_key,
+                 double dim_alpha_step)
 {
     memset(app, 0, sizeof(*app));
     app->fd = -1;
@@ -13,6 +17,11 @@ void rx_app_init(struct rx_app *app, int use_udp, const char *joystick_device,
     app->use_udp = use_udp;
     app->frame = g_byte_array_new();
     app->zoom = 1.0;
+    app->zoom_in_key = zoom_in_key;
+    app->zoom_out_key = zoom_out_key;
+    app->dim_alpha_up_key = dim_alpha_up_key;
+    app->dim_alpha_down_key = dim_alpha_down_key;
+    app->dim_alpha_step = dim_alpha_step > 0.0 ? dim_alpha_step : 0.05;
     app->lock_aspect = lock_aspect;
     app->joystick_device = joystick_device;
     app->joystick_enabled = joystick_enabled;

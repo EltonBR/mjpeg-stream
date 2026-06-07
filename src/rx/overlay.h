@@ -69,6 +69,8 @@ int overlay_set_hud_color(struct overlay_state *overlay, const char *color);
 int overlay_set_hud_font(struct overlay_state *overlay, const char *font);
 int overlay_set_dim(struct overlay_state *overlay, const char *color,
                     double alpha);
+void overlay_set_dim_alpha(struct overlay_state *overlay, double alpha);
+double overlay_get_dim_alpha(struct overlay_state *overlay);
 int overlay_load_file(struct overlay_state *overlay, const char *path);
 void overlay_cleanup(struct overlay_state *overlay);
 void overlay_draw(struct overlay_state *overlay, cairo_t *cr,

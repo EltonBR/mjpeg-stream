@@ -23,7 +23,9 @@ int main(int argc, char **argv)
     }
 
     rx_app_init(&app, cfg.use_udp, cfg.joystick_device, cfg.joystick_enabled,
-                cfg.lock_aspect);
+                cfg.lock_aspect, cfg.zoom_in_key, cfg.zoom_out_key,
+                cfg.dim_alpha_up_key, cfg.dim_alpha_down_key,
+                cfg.dim_alpha_step);
     gtk_init(&argc, &argv);
 
     if (overlay_set_hud_color(&app.overlay, cfg.hud_color) < 0) {
@@ -66,8 +68,8 @@ int main(int argc, char **argv)
         telemetry_start(&app.telemetry, cfg.telemetry_host, cfg.telemetry_port,
                         &app.overlay, app.drawing_area);
     }
+    rx_input_attach(window, &app);
     if (app.events.enabled) {
-        rx_input_attach(window, &app);
         rx_input_start_joystick(&app);
     }
     gtk_widget_show_all(window);

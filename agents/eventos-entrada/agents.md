@@ -22,9 +22,11 @@ Responsavel por capturar teclado, mouse e joystick no receptor GTK e enviar even
 - Eventos emitidos sem conexao ativa podem ser descartados.
 - Teclado usa `keydown`, `keyup` e `keypress`; `keypress` e emitido no release, depois do ciclo pressionar+soltar.
 - Mouse usa `mousedown`, `mouseup` e `mousepress`; `mousepress` e emitido no release.
+- Mouse wheel usa `scroll` com `direction`, `delta_x` e `delta_y`.
 - Joystick button usa `buttondown`, `buttonup` e `buttonpress`; `buttonpress` e emitido quando o botao volta para `value=0`. Joystick axis continua usando `axis`.
 - Eventos de mouse sao capturados somente no `GtkDrawingArea`; toolbar e botoes de zoom nao devem enviar mouse ao servidor.
 - Em eventos de mouse, `x` e `y` sao coordenadas relativas normalizadas da area da imagem (`0.0` a `1.0`). `pixel_x` e `pixel_y` mantem a posicao em pixels dentro dessa area.
+- Atalhos locais configurados para zoom e `dim_alpha` sao consumidos pela UI; nao envie `keydown`/`keyup`/`keypress` desses atalhos ao servidor.
 
 ## Exemplos
 
@@ -36,6 +38,7 @@ Responsavel por capturar teclado, mouse e joystick no receptor GTK e enviar even
 {"origin":"mouse","type":"mousedown","button":1,"x":0.500000,"y":0.250000,"pixel_x":640.00,"pixel_y":180.00,"image_w":1280,"image_h":720,"state":0}
 {"origin":"mouse","type":"mouseup","button":1,"x":0.500000,"y":0.250000,"pixel_x":640.00,"pixel_y":180.00,"image_w":1280,"image_h":720,"state":0}
 {"origin":"mouse","type":"mousepress","button":1,"x":0.500000,"y":0.250000,"pixel_x":640.00,"pixel_y":180.00,"image_w":1280,"image_h":720,"state":0}
+{"origin":"mouse","type":"scroll","direction":"down","delta_x":0.000000,"delta_y":1.000000,"x":0.500000,"y":0.250000,"pixel_x":640.00,"pixel_y":180.00,"image_w":1280,"image_h":720,"state":0}
 {"origin":"joystick","type":"axis","number":0,"value":1200,"time":123456,"initial":false}
 {"origin":"joystick","type":"buttondown","number":0,"value":1,"time":123456,"initial":false}
 {"origin":"joystick","type":"buttonup","number":0,"value":0,"time":123500,"initial":false}

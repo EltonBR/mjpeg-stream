@@ -85,6 +85,14 @@ host=127.0.0.1
 listen_host=0.0.0.0
 port=5000
 
+[window]
+lock_aspect=true
+zoom_in_key=plus
+zoom_out_key=minus
+dim_alpha_up_key=
+dim_alpha_down_key=
+dim_alpha_step=0.05
+
 [events]
 events_enabled=true
 event_host=127.0.0.1
@@ -105,7 +113,7 @@ telemetry_host=127.0.0.1
 telemetry_port=7000
 ```
 
-Quando `overlay=overlay.json` vem do `rx.ini` e o arquivo nao existe, o receptor segue sem overlay. Quando `--overlay overlay.json` e informado na CLI, arquivo ausente e erro. `hud_color` aceita `green`, `amber` ou `#rrggbb` e afeta labels/linhas. `hud_font` define a familia de fonte do HUD; o padrao e `Monospace`. `dim_color` e `dim_alpha` aplicam uma camada translucida sobre o video antes do HUD para melhorar leitura.
+Quando `overlay=overlay.json` vem do `rx.ini` e o arquivo nao existe, o receptor segue sem overlay. Quando `--overlay overlay.json` e informado na CLI, arquivo ausente e erro. `hud_color` aceita `green`, `amber` ou `#rrggbb` e afeta labels/linhas. `hud_font` define a familia de fonte do HUD; o padrao e `Monospace`. `dim_color` e `dim_alpha` aplicam uma camada translucida sobre o video antes do HUD para melhorar leitura. `zoom_in_key` e `zoom_out_key` usam nomes GDK e aceitam multiplas teclas separadas por virgula; `dim_alpha_up_key` e `dim_alpha_down_key` ficam vazios por padrao, entao o alpha so muda pelo slider da UI ate voce configurar atalhos.
 
 ## Uso
 
@@ -234,6 +242,7 @@ Exemplos:
 {"origin":"mouse","type":"mousedown","button":1,"x":0.500000,"y":0.250000,"pixel_x":640.00,"pixel_y":180.00,"image_w":1280,"image_h":720,"state":0}
 {"origin":"mouse","type":"mouseup","button":1,"x":0.500000,"y":0.250000,"pixel_x":640.00,"pixel_y":180.00,"image_w":1280,"image_h":720,"state":0}
 {"origin":"mouse","type":"mousepress","button":1,"x":0.500000,"y":0.250000,"pixel_x":640.00,"pixel_y":180.00,"image_w":1280,"image_h":720,"state":0}
+{"origin":"mouse","type":"scroll","direction":"down","delta_x":0.000000,"delta_y":1.000000,"x":0.500000,"y":0.250000,"pixel_x":640.00,"pixel_y":180.00,"image_w":1280,"image_h":720,"state":0}
 {"origin":"joystick","type":"axis","number":0,"value":1200,"time":123456,"initial":false}
 {"origin":"joystick","type":"buttondown","number":0,"value":1,"time":123456,"initial":false}
 {"origin":"joystick","type":"buttonup","number":0,"value":0,"time":123500,"initial":false}
@@ -242,7 +251,7 @@ Exemplos:
 
 Eventos `keypress`, `mousepress` e `buttonpress` sao emitidos quando o ciclo completo de pressionar e soltar termina.
 
-Eventos de mouse sao capturados somente sobre a area da imagem (`GtkDrawingArea`). Cliques na toolbar, como botoes de zoom, nao sao enviados. Em eventos de mouse, `x` e `y` sao relativos normalizados na area da imagem, de `0.0` a `1.0`; `pixel_x` e `pixel_y` trazem a posicao em pixels dentro dessa mesma area.
+Eventos de mouse sao capturados somente sobre a area da imagem (`GtkDrawingArea`). Cliques na toolbar, como botoes de zoom, nao sao enviados. Em eventos de mouse, incluindo `scroll`, `x` e `y` sao relativos normalizados na area da imagem, de `0.0` a `1.0`; `pixel_x` e `pixel_y` trazem a posicao em pixels dentro dessa mesma area.
 
 O socket de eventos permanece ativo enquanto o receptor estiver aberto. Se a conexao cair ou o servidor de controle ainda nao estiver disponivel, o receptor continua rodando e tenta reconectar automaticamente. Eventos gerados enquanto nao ha conexao ativa sao descartados.
 

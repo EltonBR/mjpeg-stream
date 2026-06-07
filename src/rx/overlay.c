@@ -200,6 +200,29 @@ int overlay_set_dim(struct overlay_state *overlay, const char *color,
     return 0;
 }
 
+void overlay_set_dim_alpha(struct overlay_state *overlay, double alpha)
+{
+    if (alpha < 0.0) {
+        alpha = 0.0;
+    } else if (alpha > 1.0) {
+        alpha = 1.0;
+    }
+
+    g_mutex_lock(&overlay->lock);
+    overlay->dim_alpha = alpha;
+    g_mutex_unlock(&overlay->lock);
+}
+
+double overlay_get_dim_alpha(struct overlay_state *overlay)
+{
+    double alpha;
+
+    g_mutex_lock(&overlay->lock);
+    alpha = overlay->dim_alpha;
+    g_mutex_unlock(&overlay->lock);
+    return alpha;
+}
+
 static char *dup_json_string(struct json_object *obj, const char *key)
 {
     struct json_object *value;

@@ -42,10 +42,13 @@ Responsavel pelo binario `mjpeg_rx`, que recebe frames JPEG por TCP ou UDP, exib
 - O overlay deve ser desenhado no espaco visivel do `GtkDrawingArea` (`0,0,width,height`), nao no retangulo interno do video escalado/cortado. Isso evita que HUD saia da area visivel ou aumente junto com o zoom.
 - Fonte global do HUD vem de `hud_font`/`--hud-font` e deve passar por `overlay_state` para elementos basicos e widgets. O padrao e `Monospace`.
 - A camada `dim_color`/`dim_alpha` e desenhada em `overlay_draw` depois do video e antes de elementos/widgets do HUD. Padrao: preto com alpha `0.20`; `dim_alpha=0` desativa.
+- A toolbar do RX pode ajustar `dim_alpha` em runtime via slider. Esse ajuste nao persiste no INI; o valor inicial sempre vem de config/CLI.
+- Atalhos locais de zoom e `dim_alpha` vem de `rx.ini`/CLI por nomes GDK. `dim_alpha_up_key` e `dim_alpha_down_key` ficam vazios por padrao; quando configurados, use `dim_alpha_step`.
 - Widgets `vertical_ruler` e `horizontal_ruler` compartilham a mesma implementacao em `src/rx/widgets/vertical_ruler/vertical_ruler_widget.c`. Mantenha parametros comuns como `value`, `min`, `max`, `window`, `major_step`, `minor_step`, `flip_horizontal` e `flip_vertical` consistentes entre os dois.
 - `--lock-aspect` e `lock_aspect=true` mantem a area da imagem na proporcao do frame recebido usando `gtk_window_set_geometry_hints` com o `GtkDrawingArea` como widget de geometria. Nao force resize dentro de `size-allocate`, porque isso briga com o window manager durante o arraste. Quando ativo, maximizar deve ficar desabilitado.
 - Eventos de teclado, mouse e joystick sao enviados como uma linha JSON por evento.
 - Eventos de pressionamento usam `down/up` e disparam `press` no release: `keydown`/`keyup`/`keypress`, `mousedown`/`mouseup`/`mousepress`, `buttondown`/`buttonup`/`buttonpress`.
+- Scroll do mouse envia `type:"scroll"` com `direction`, `delta_x`, `delta_y` e as mesmas coordenadas relativas/pixels dos outros eventos de mouse.
 - O canal de eventos tenta reconectar automaticamente; eventos sem conexao ativa sao descartados.
 
 ## Pontos de cuidado
@@ -57,6 +60,7 @@ Responsavel pelo binario `mjpeg_rx`, que recebe frames JPEG por TCP ou UDP, exib
 - `show_frame` tambem atualiza `aspect_frame_w` e `aspect_frame_h`; qualquer mudanca no ciclo de frame precisa preservar isso para `--lock-aspect`.
 - Eventos de mouse devem ser conectados somente em `app->drawing_area`, nunca no `window` como fallback. Cliques na toolbar/zoom nao devem sair no canal de eventos.
 - Coordenadas de mouse enviadas ao servidor usam `x` e `y` relativos normalizados da area da imagem; pixels ficam em `pixel_x` e `pixel_y`.
+- Teclas usadas por atalhos locais da UI devem ser consumidas e nao enviadas ao servidor como teclado remoto.
 - Coordenadas relativas do HUD usam a area visivel do `GtkDrawingArea`; tamanhos em pixels nao devem ser multiplicados pelo zoom.
 
 ## Verificacao recomendada
