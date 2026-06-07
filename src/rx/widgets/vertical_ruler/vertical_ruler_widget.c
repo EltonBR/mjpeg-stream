@@ -45,7 +45,8 @@ static int is_major_tick(double value, double step)
 void vertical_ruler_widget_draw(struct overlay_widget *widget, cairo_t *cr,
                                 const struct overlay_render_context *ctx)
 {
-    double value = widget_template_number(ctx, widget->value_expr, 0.0);
+    double raw_value = widget_template_number(ctx, widget->value_expr, 0.0);
+    double value = raw_value;
     double w = widget_coord_value(widget->w > 0.0 ? widget->w : 86.0, ctx->frame_w);
     double h = widget_coord_value(widget->h > 0.0 ? widget->h : 0.44, ctx->frame_h);
     double x = ctx->frame_x + widget_coord_value(widget->x, ctx->frame_w);
@@ -72,7 +73,7 @@ void vertical_ruler_widget_draw(struct overlay_widget *widget, cairo_t *cr,
 
     cairo_save(cr);
     cairo_set_source_rgba(cr, ctx->hud_r, ctx->hud_g, ctx->hud_b,
-                          widget->alpha * 0.14);
+                          0);
     cairo_rectangle(cr, left, top, w, h);
     cairo_fill(cr);
 
@@ -121,7 +122,7 @@ void vertical_ruler_widget_draw(struct overlay_widget *widget, cairo_t *cr,
 
     snprintf(text, sizeof(text), "%s%.2f%s",
              widget->label ? widget->label : "",
-             value,
+             raw_value,
              widget->suffix ? widget->suffix : "");
     widget_draw_text(cr, ctx, text, left + w / 2.0, top + h + 18.0,
                      widget->size > 0.0 ? widget->size : 13.0,

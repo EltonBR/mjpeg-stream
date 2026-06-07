@@ -398,9 +398,7 @@ static void apply_telemetry(struct overlay_state *overlay,
         }
         if (json_object_get_type(value) == json_type_double ||
             json_object_get_type(value) == json_type_int) {
-            char number[64];
-            snprintf(number, sizeof(number), "%.6g", json_object_get_double(value));
-            stored = number;
+            stored = json_object_get_string(value);
         } else if (json_object_get_type(value) == json_type_string) {
             stored = json_object_get_string(value);
         } else if (json_object_get_type(value) == json_type_boolean) {

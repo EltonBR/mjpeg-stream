@@ -40,11 +40,11 @@ function telemetryPayload() {
   const seconds = now.getTime() / 1000;
   const date = now.toISOString().slice(0, 10);
   const time = now.toTimeString().slice(0, 8);
+  const angle = Math.sin(seconds * 0.7) * 90;
 
   return {
     type: 'telemetry',
-    angle: Number(((seconds * 8) % 360).toFixed(2)),
-    rumero: "65.40",
+    angle: Number(angle.toFixed(2)),
     rotate: Number(((seconds * 8) % 360).toFixed(0)),
     azimuth: Number(((seconds * 10) % 360).toFixed(2)),
     heading: Math.trunc((seconds * 15) % 360),
