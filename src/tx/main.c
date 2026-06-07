@@ -11,6 +11,7 @@
 #include <string.h>
 #include <sys/select.h>
 #include <unistd.h>
+#include <locale.h>
 
 static volatile sig_atomic_t running = 1;
 
@@ -76,6 +77,9 @@ int main(int argc, char **argv)
         tx_usage(argv[0]);
         return 2;
     }
+
+    /* Force global locale to en_US to ensure decimal point is '.' */
+    (void)setlocale(LC_ALL, "en_US.UTF-8");
 
     signal(SIGINT, on_signal);
     signal(SIGTERM, on_signal);
