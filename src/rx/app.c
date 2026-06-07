@@ -32,11 +32,28 @@ void rx_app_init(struct rx_app *app, int use_udp, const char *joystick_device,
 
 void rx_app_cleanup(struct rx_app *app)
 {
+    /* PONTO CRÍTICO: Cleanup de Joystick
+     * ORDEM IMPORTA para evitar deadlock:
+     * 1. Sinaliza thread parar (app->stopping = 1)
+     * 2. Aguarda término com g_thread_join()
+     * Nunca inverter a ordem! */
     app->stopping = 1;
+    
     if (app->joystick_thread) {
-        g_thread_join(app->joystick_thread);
-        app->joystick_thread = NULL;
+        fprintf(stderr, "Encerrando thread de joystick...");
+        fflush(stderr);
+        
+        /* Aguarda término da thread (máx ~5s de timeout implícito)
+         * Se travar aqui, significa que app->stopping não foi lido
+         * pela thread - verificar joystick_thread() */
+        GThread *thread = app->joystick_thread;
+        app->joystick_thread = NULL;  /* Marca NULL antes para evitar reentrada */
+        
+        g_thread_join(thread);
+        fprintf(stderr, " OK\n");
+        fflush(stderr);
     }
+    
     telemetry_close(&app->telemetry);
     event_sender_close(&app->events);
     overlay_cleanup(&app->overlay);

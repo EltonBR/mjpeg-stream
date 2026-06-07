@@ -283,12 +283,23 @@ static gboolean on_scroll(GtkWidget *widget, GdkEventScroll *event,
 static gpointer joystick_thread(gpointer data)
 {
     struct rx_app *app = data;
+    
+    /* Validação: app não deve ser NULL */
+    if (!app) {
+        fprintf(stderr, "joystick_thread: app é NULL\n");
+        return NULL;
+    }
+    
     int fd = open(app->joystick_device, O_RDONLY | O_NONBLOCK);
     if (fd < 0) {
         perror(app->joystick_device);
         return NULL;
     }
 
+    /* PONTO CRÍTICO: Sincronização com cleanup
+     * A thread verifica app->stopping regularmente
+     * O cleanup seta app->stopping=1 ANTES de chamar g_thread_join()
+     * Isso evita deadlock */
     while (!app->stopping) {
         struct js_event event;
         ssize_t n = read(fd, &event, sizeof(event));
