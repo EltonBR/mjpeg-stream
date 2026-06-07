@@ -6,6 +6,8 @@ RX_CONFIG="${RX_CONFIG:-rx.ini}"
 TELEMETRY_HOST="${TELEMETRY_HOST:-127.0.0.1}"
 TELEMETRY_PORT="${TELEMETRY_PORT:-7000}"
 TELEMETRY_INTERVAL="${TELEMETRY_INTERVAL:-0.1}"
+EVENT_HOST="${EVENT_HOST:-127.0.0.1}"
+EVENT_PORT="${EVENT_PORT:-6000}"
 
 OVERLAY="${OVERLAY:-overlay.json}"
 HUD_COLOR="${HUD_COLOR:-}"
@@ -64,10 +66,12 @@ if [ -n "$HUD_COLOR" ]; then
     ./asset_colorize --color "$HUD_COLOR" "$HUD_ASSET_SRC" "$HUD_ASSET_OUT"
 fi
 
-echo "iniciando telemetria em ${TELEMETRY_HOST}:${TELEMETRY_PORT}"
+echo "iniciando telemetria em ${TELEMETRY_HOST}:${TELEMETRY_PORT} e eventos em ${EVENT_HOST}:${EVENT_PORT}"
 ./telemetry_server.js \
     --host "$TELEMETRY_HOST" \
     --port "$TELEMETRY_PORT" \
+    --event-host "$EVENT_HOST" \
+    --event-port "$EVENT_PORT" \
     --interval "$TELEMETRY_INTERVAL" &
 telemetry_pid="$!"
 
@@ -90,7 +94,9 @@ set -- ./mjpeg_rx \
     --overlay "$OVERLAY" \
     --telemetry-enabled \
     --telemetry-host "$TELEMETRY_HOST" \
-    --telemetry-port "$TELEMETRY_PORT"
+    --telemetry-port "$TELEMETRY_PORT" \
+    --event-host "$EVENT_HOST" \
+    --event-port "$EVENT_PORT"
 
 if [ -n "$HUD_COLOR" ]; then
     set -- "$@" --hud-color "$HUD_COLOR"

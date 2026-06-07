@@ -140,6 +140,12 @@ TCP binario com receptor GTK:
 ./mjpeg_rx --tcp --host 127.0.0.1 --port 5000
 ```
 
+Para manter a area da imagem sempre na proporcao do frame recebido:
+
+```sh
+./mjpeg_rx --tcp --host 127.0.0.1 --port 5000 --lock-aspect
+```
+
 TCP via IPv6:
 
 ```sh
@@ -224,11 +230,22 @@ CLI:
 Exemplos:
 
 ```json
-{"origin":"keyboard","type":"key_press","keyval":65361,"key":"Left","state":0}
-{"origin":"mouse","type":"motion","x":215.00,"y":110.00,"state":0}
-{"origin":"mouse","type":"button_press","button":1,"x":215.00,"y":110.00,"state":0}
+{"origin":"keyboard","type":"keydown","keyval":65361,"key":"Left","state":0}
+{"origin":"keyboard","type":"keyup","keyval":65361,"key":"Left","state":0}
+{"origin":"keyboard","type":"keypress","keyval":65361,"key":"Left","state":0}
+{"origin":"mouse","type":"motion","x":0.500000,"y":0.250000,"pixel_x":640.00,"pixel_y":180.00,"image_w":1280,"image_h":720,"state":0}
+{"origin":"mouse","type":"mousedown","button":1,"x":0.500000,"y":0.250000,"pixel_x":640.00,"pixel_y":180.00,"image_w":1280,"image_h":720,"state":0}
+{"origin":"mouse","type":"mouseup","button":1,"x":0.500000,"y":0.250000,"pixel_x":640.00,"pixel_y":180.00,"image_w":1280,"image_h":720,"state":0}
+{"origin":"mouse","type":"mousepress","button":1,"x":0.500000,"y":0.250000,"pixel_x":640.00,"pixel_y":180.00,"image_w":1280,"image_h":720,"state":0}
 {"origin":"joystick","type":"axis","number":0,"value":1200,"time":123456,"initial":false}
+{"origin":"joystick","type":"buttondown","number":0,"value":1,"time":123456,"initial":false}
+{"origin":"joystick","type":"buttonup","number":0,"value":0,"time":123500,"initial":false}
+{"origin":"joystick","type":"buttonpress","number":0,"value":0,"time":123500,"initial":false}
 ```
+
+Eventos `keypress`, `mousepress` e `buttonpress` sao emitidos quando o ciclo completo de pressionar e soltar termina.
+
+Eventos de mouse sao capturados somente sobre a area da imagem (`GtkDrawingArea`). Cliques na toolbar, como botoes de zoom, nao sao enviados. Em eventos de mouse, `x` e `y` sao relativos normalizados na area da imagem, de `0.0` a `1.0`; `pixel_x` e `pixel_y` trazem a posicao em pixels dentro dessa mesma area.
 
 O socket de eventos permanece ativo enquanto o receptor estiver aberto. Se a conexao cair ou o servidor de controle ainda nao estiver disponivel, o receptor continua rodando e tenta reconectar automaticamente. Eventos gerados enquanto nao ha conexao ativa sao descartados.
 
@@ -269,7 +286,7 @@ Elementos basicos continuam aceitos via `elements` para compatibilidade:
 - `label`: `text`, `x`, `y`, `size`, `color`, `alpha`, `visible`, `z_index`.
 - `line`: `x1`, `y1`, `x2`, `y2`, `width`, `color`, `alpha`, `visible`, `z_index`.
 
-Coordenadas entre `0.0` e `1.0` sao relativas ao frame desenhado; valores maiores que `1` sao pixels. Anchors aceitos: `top-left`, `top-center`, `top-right`, `bottom-left`, `bottom-right`, `center`. Imagens PNG sao carregadas de `assets_dir`; paths absolutos e paths com `..` sao rejeitados.
+Coordenadas entre `0.0` e `1.0` sao relativas a area visivel do HUD; valores maiores que `1` sao pixels. O receptor renderiza o video em modo cover, preenchendo a janela com proporcao preservada e crop central quando necessario. O zoom aumenta esse crop; tamanhos em pixels dos itens do HUD continuam fixos. Anchors aceitos: `top-left`, `top-center`, `top-right`, `bottom-left`, `bottom-right`, `center`. Imagens PNG sao carregadas de `assets_dir`; paths absolutos e paths com `..` sao rejeitados.
 
 A cor global do HUD vem de `hud_color` no `rx.ini` ou de `--hud-color`. Labels e linhas usam essa cor. Imagens PNG sao carregadas como estao no arquivo; para pintar assets, use o binario separado `asset_colorize`.
 

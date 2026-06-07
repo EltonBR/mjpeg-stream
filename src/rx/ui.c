@@ -11,6 +11,8 @@ struct frame_msg {
     size_t len;
 };
 
+static void apply_area_aspect_hint(struct rx_app *app);
+
 static void update_zoom_label(struct rx_app *app)
 {
     char text[32];
@@ -20,19 +22,37 @@ static void update_zoom_label(struct rx_app *app)
 
 static void update_image(struct rx_app *app)
 {
-    if (app->last_pixbuf && app->drawing_area) {
-        int width = (int)(gdk_pixbuf_get_width(app->last_pixbuf) * app->zoom);
-        int height = (int)(gdk_pixbuf_get_height(app->last_pixbuf) * app->zoom);
-        if (width < 1) {
-            width = 1;
-        }
-        if (height < 1) {
-            height = 1;
-        }
-        gtk_widget_set_size_request(app->drawing_area, width, height);
-    }
+    apply_area_aspect_hint(app);
     update_zoom_label(app);
     rx_queue_redraw(app);
+}
+
+static void apply_area_aspect_hint(struct rx_app *app)
+{
+    GtkWidget *toplevel;
+    GdkGeometry geometry;
+    double aspect;
+
+    if (!app->lock_aspect || app->aspect_frame_w <= 0 ||
+        app->aspect_frame_h <= 0 || !app->drawing_area) {
+        return;
+    }
+
+    aspect = (double)app->aspect_frame_w / (double)app->aspect_frame_h;
+    if (aspect <= 0.0) {
+        return;
+    }
+
+    toplevel = gtk_widget_get_toplevel(app->drawing_area);
+    if (!GTK_IS_WINDOW(toplevel)) {
+        return;
+    }
+
+    memset(&geometry, 0, sizeof(geometry));
+    geometry.min_aspect = aspect;
+    geometry.max_aspect = aspect;
+    gtk_window_set_geometry_hints(GTK_WINDOW(toplevel), app->drawing_area,
+                                  &geometry, GDK_HINT_ASPECT);
 }
 
 static void on_zoom_in(GtkButton *button, gpointer data)
@@ -52,10 +72,10 @@ static void on_zoom_out(GtkButton *button, gpointer data)
 {
     struct rx_app *app = data;
     (void)button;
-    if (app->zoom > 0.25) {
+    if (app->zoom > 1.0) {
         app->zoom /= 1.10;
-        if (app->zoom < 0.25) {
-            app->zoom = 0.25;
+        if (app->zoom < 1.0) {
+            app->zoom = 1.0;
         }
         update_image(app);
     }
@@ -93,6 +113,8 @@ static gboolean show_frame(gpointer data)
             g_object_unref(msg->app->last_pixbuf);
         }
         msg->app->last_pixbuf = g_object_ref(pixbuf);
+        msg->app->aspect_frame_w = gdk_pixbuf_get_width(pixbuf);
+        msg->app->aspect_frame_h = gdk_pixbuf_get_height(pixbuf);
         update_image(msg->app);
     }
 
@@ -113,29 +135,46 @@ static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data)
     double draw_h;
     double draw_x;
     double draw_y;
+    double cover_scale;
+    double draw_scale;
 
     cairo_set_source_rgb(cr, 0.04, 0.04, 0.04);
     cairo_paint(cr);
 
-    if (!app->last_pixbuf) {
+    if (!app->last_pixbuf || widget_w <= 0 || widget_h <= 0) {
         return FALSE;
     }
 
     frame_w = gdk_pixbuf_get_width(app->last_pixbuf);
     frame_h = gdk_pixbuf_get_height(app->last_pixbuf);
-    draw_w = frame_w * app->zoom;
-    draw_h = frame_h * app->zoom;
+    if (frame_w <= 0 || frame_h <= 0) {
+        return FALSE;
+    }
+
+    cover_scale = (double)widget_w / (double)frame_w;
+    if (((double)widget_h / (double)frame_h) > cover_scale) {
+        cover_scale = (double)widget_h / (double)frame_h;
+    }
+    draw_scale = cover_scale * app->zoom;
+    draw_w = frame_w * draw_scale;
+    draw_h = frame_h * draw_scale;
     draw_x = (widget_w - draw_w) / 2.0;
     draw_y = (widget_h - draw_h) / 2.0;
 
     cairo_save(cr);
+    cairo_rectangle(cr, 0, 0, widget_w, widget_h);
+    cairo_clip(cr);
     cairo_translate(cr, draw_x, draw_y);
-    cairo_scale(cr, app->zoom, app->zoom);
+    cairo_scale(cr, draw_scale, draw_scale);
     gdk_cairo_set_source_pixbuf(cr, app->last_pixbuf, 0, 0);
     cairo_paint(cr);
     cairo_restore(cr);
 
-    overlay_draw(&app->overlay, cr, draw_x, draw_y, draw_w, draw_h);
+    cairo_save(cr);
+    cairo_rectangle(cr, 0, 0, widget_w, widget_h);
+    cairo_clip(cr);
+    overlay_draw(&app->overlay, cr, 0.0, 0.0, widget_w, widget_h);
+    cairo_restore(cr);
     return FALSE;
 }
 
@@ -178,6 +217,39 @@ static void on_destroy(GtkWidget *widget, gpointer data)
     gtk_main_quit();
 }
 
+static void on_window_realize(GtkWidget *widget, gpointer data)
+{
+    struct rx_app *app = data;
+    GdkWindow *gdk_window;
+
+    if (!app->lock_aspect) {
+        return;
+    }
+
+    apply_area_aspect_hint(app);
+    gdk_window = gtk_widget_get_window(widget);
+    if (gdk_window) {
+        gdk_window_set_functions(gdk_window,
+                                 GDK_FUNC_MOVE |
+                                 GDK_FUNC_RESIZE |
+                                 GDK_FUNC_MINIMIZE |
+                                 GDK_FUNC_CLOSE);
+    }
+}
+
+static gboolean on_window_state_event(GtkWidget *widget,
+                                      GdkEventWindowState *event,
+                                      gpointer data)
+{
+    struct rx_app *app = data;
+
+    if (app->lock_aspect &&
+        (event->new_window_state & GDK_WINDOW_STATE_MAXIMIZED)) {
+        gtk_window_unmaximize(GTK_WINDOW(widget));
+    }
+    return FALSE;
+}
+
 GtkWidget *rx_create_window(struct rx_app *app)
 {
     GtkWidget *window;
@@ -185,13 +257,15 @@ GtkWidget *rx_create_window(struct rx_app *app)
     GtkWidget *toolbar;
     GtkWidget *zoom_out;
     GtkWidget *zoom_in;
-    GtkWidget *scroller;
     GtkWidget *label;
 
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(window), "MJPEG Receiver");
     gtk_window_set_default_size(GTK_WINDOW(window), 800, 600);
     g_signal_connect(window, "destroy", G_CALLBACK(on_destroy), app);
+    g_signal_connect(window, "realize", G_CALLBACK(on_window_realize), app);
+    g_signal_connect(window, "window-state-event",
+                     G_CALLBACK(on_window_state_event), app);
 
     box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
     gtk_container_add(GTK_CONTAINER(window), box);
@@ -221,19 +295,13 @@ GtkWidget *rx_create_window(struct rx_app *app)
     app->image = app->drawing_area;
     gtk_widget_set_hexpand(app->drawing_area, TRUE);
     gtk_widget_set_vexpand(app->drawing_area, TRUE);
-    gtk_widget_set_size_request(app->drawing_area, 800, 600);
     gtk_widget_add_events(app->drawing_area,
                           GDK_POINTER_MOTION_MASK |
                           GDK_BUTTON_PRESS_MASK |
                           GDK_BUTTON_RELEASE_MASK);
     g_signal_connect(app->drawing_area, "draw", G_CALLBACK(on_draw), app);
 
-    scroller = gtk_scrolled_window_new(NULL, NULL);
-    gtk_widget_set_hexpand(scroller, TRUE);
-    gtk_widget_set_vexpand(scroller, TRUE);
-
-    gtk_container_add(GTK_CONTAINER(scroller), app->drawing_area);
-    gtk_box_pack_start(GTK_BOX(box), scroller, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(box), app->drawing_area, TRUE, TRUE, 0);
 
     return window;
 }

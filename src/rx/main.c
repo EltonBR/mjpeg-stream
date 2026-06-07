@@ -22,7 +22,8 @@ int main(int argc, char **argv)
         return 2;
     }
 
-    rx_app_init(&app, cfg.use_udp, cfg.joystick_device, cfg.joystick_enabled);
+    rx_app_init(&app, cfg.use_udp, cfg.joystick_device, cfg.joystick_enabled,
+                cfg.lock_aspect);
     gtk_init(&argc, &argv);
 
     if (overlay_set_hud_color(&app.overlay, cfg.hud_color) < 0) {

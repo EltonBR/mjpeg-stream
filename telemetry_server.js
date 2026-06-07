@@ -7,6 +7,8 @@ function parseArgs(argv) {
   const args = {
     host: '127.0.0.1',
     port: 7000,
+    eventHost: '127.0.0.1',
+    eventPort: 6000,
     interval: 1000,
   };
 
@@ -16,16 +18,24 @@ function parseArgs(argv) {
       args.host = argv[++i];
     } else if (arg === '--port' && i + 1 < argv.length) {
       args.port = Number(argv[++i]);
+    } else if (arg === '--event-host' && i + 1 < argv.length) {
+      args.eventHost = argv[++i];
+    } else if (arg === '--event-port' && i + 1 < argv.length) {
+      args.eventPort = Number(argv[++i]);
     } else if (arg === '--interval' && i + 1 < argv.length) {
       args.interval = Number(argv[++i]) * 1000;
     } else {
-      console.error('usage: telemetry_server.js [--host 127.0.0.1] [--port 7000] [--interval 1]');
+      console.error('usage: telemetry_server.js [--host 127.0.0.1] [--port 7000] [--event-host 127.0.0.1] [--event-port 6000] [--interval 1]');
       process.exit(2);
     }
   }
 
   if (!Number.isInteger(args.port) || args.port < 1 || args.port > 65535) {
     console.error('invalid --port');
+    process.exit(2);
+  }
+  if (!Number.isInteger(args.eventPort) || args.eventPort < 1 || args.eventPort > 65535) {
+    console.error('invalid --event-port');
     process.exit(2);
   }
   if (!Number.isFinite(args.interval) || args.interval <= 0) {
@@ -82,6 +92,46 @@ function main() {
 
   server.listen(args.port, args.host, () => {
     console.log(`telemetry server listening on ${args.host}:${args.port}`);
+  });
+
+  const eventServer = net.createServer((socket) => {
+    const remote = `${socket.remoteAddress}:${socket.remotePort}`;
+    let buffer = '';
+    console.log(`event client connected: ${remote}`);
+
+    socket.on('data', (chunk) => {
+      buffer += chunk.toString('utf8');
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        const text = line.trim();
+        if (!text) {
+          continue;
+        }
+        try {
+          console.log('event:', JSON.parse(text));
+        } catch (err) {
+          console.log(`event raw: ${text}`);
+        }
+      }
+    });
+
+    socket.on('close', () => {
+      console.log('event client disconnected');
+    });
+    socket.on('error', (err) => {
+      console.error(`event client error: ${err.message}`);
+    });
+  });
+
+  eventServer.on('error', (err) => {
+    console.error(`event server error: ${err.message}`);
+    process.exit(1);
+  });
+
+  eventServer.listen(args.eventPort, args.eventHost, () => {
+    console.log(`event server listening on ${args.eventHost}:${args.eventPort}`);
   });
 }
 

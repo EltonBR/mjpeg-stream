@@ -1,10 +1,10 @@
-# Demo TX + RX + Telemetria
+# Demo TX + RX + Telemetria + Eventos
 
 O script `start_overlay_demo.sh` inicia:
 
-1. servidor Node.js de telemetria
+1. servidor Node.js de telemetria e eventos
 2. `mjpeg_tx` usando `tx.ini`
-3. `mjpeg_rx` usando `rx.ini` com overlay e telemetria
+3. `mjpeg_rx` usando `rx.ini` com overlay, telemetria e eventos
 
 ## Uso
 
@@ -39,9 +39,18 @@ Defaults:
 
 - stream TCP: configurado por `tx.ini` e `rx.ini`
 - telemetria: `127.0.0.1:7000`
+- eventos: `127.0.0.1:6000`
 
 Trocar porta de telemetria:
 
 ```sh
 TELEMETRY_PORT=7001 ./start_overlay_demo.sh
 ```
+
+Trocar porta de eventos:
+
+```sh
+EVENT_PORT=6001 ./start_overlay_demo.sh
+```
+
+Eventos de mouse/teclado/joystick recebidos pelo servidor Node aparecem no console.

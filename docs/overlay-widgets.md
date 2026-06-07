@@ -20,13 +20,15 @@ Paths de imagens nao podem ser absolutos e nao podem conter `..`.
 
 Campos `x`, `y`, `w`, `h` aceitam:
 
-- `0.0` a `1.0`: relativo ao frame.
+- `0.0` a `1.0`: relativo a area visivel do HUD.
 - valores maiores que `1`: pixels.
 
 Exemplo:
 
-- `x: 0.5` significa centro horizontal do frame.
+- `x: 0.5` significa centro horizontal da area visivel.
 - `x: 20` significa 20 pixels.
+
+O receptor desenha o video em modo cover: a imagem sempre preenche a area da janela mantendo proporcao. Quando a proporcao da janela nao bate com a do frame, o excesso e cortado pelo centro. Coordenadas relativas do HUD seguem a area visivel do widget; tamanhos em pixels dos itens nao sao ampliados pelo zoom.
 
 ## Anchors
 

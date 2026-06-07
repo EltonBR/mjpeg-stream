@@ -24,6 +24,7 @@ static void rx_defaults(struct rx_config *cfg)
     cfg->joystick_enabled = 0;
     cfg->telemetry_enabled = 0;
     cfg->overlay_required = 0;
+    cfg->lock_aspect = 0;
 }
 
 static int parse_bool(const char *value)
@@ -75,6 +76,8 @@ static int rx_ini_handler(void *user, const char *section,
         cfg->telemetry_host = strdup(value);
     } else if (strcmp(key, "telemetry_port") == 0) {
         cfg->telemetry_port = strdup(value);
+    } else if (strcmp(key, "lock_aspect") == 0) {
+        cfg->lock_aspect = parse_bool(value);
     }
     return 0;
 }
@@ -86,7 +89,8 @@ void rx_usage(const char *argv0)
             "Uso UDP: %s --listen 0.0.0.0|:: --port 5000 --udp\n"
             "Eventos: --event-host 127.0.0.1|::1 --event-port 6000 [--joystick /dev/input/js0]\n"
             "Overlay: --overlay overlay.json [--hud-color green|amber|#rrggbb]\n"
-            "Telemetria: [--telemetry-enabled --telemetry-host 127.0.0.1 --telemetry-port 7000]\n",
+            "Telemetria: [--telemetry-enabled --telemetry-host 127.0.0.1 --telemetry-port 7000]\n"
+            "Janela: [--lock-aspect]\n",
             argv0, argv0);
 }
 
@@ -147,6 +151,8 @@ int rx_parse_args(int argc, char **argv, struct rx_config *cfg)
             cfg->telemetry_host = argv[++i];
         } else if (strcmp(argv[i], "--telemetry-port") == 0 && i + 1 < argc) {
             cfg->telemetry_port = argv[++i];
+        } else if (strcmp(argv[i], "--lock-aspect") == 0) {
+            cfg->lock_aspect = 1;
         } else {
             return -1;
         }

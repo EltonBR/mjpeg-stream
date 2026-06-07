@@ -5,7 +5,7 @@
 #include <unistd.h>
 
 void rx_app_init(struct rx_app *app, int use_udp, const char *joystick_device,
-                 int joystick_enabled)
+                 int joystick_enabled, int lock_aspect)
 {
     memset(app, 0, sizeof(*app));
     app->fd = -1;
@@ -13,6 +13,7 @@ void rx_app_init(struct rx_app *app, int use_udp, const char *joystick_device,
     app->use_udp = use_udp;
     app->frame = g_byte_array_new();
     app->zoom = 1.0;
+    app->lock_aspect = lock_aspect;
     app->joystick_device = joystick_device;
     app->joystick_enabled = joystick_enabled;
     event_sender_init(&app->events);

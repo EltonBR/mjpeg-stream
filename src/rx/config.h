@@ -17,6 +17,7 @@ struct rx_config {
     int joystick_enabled;
     int telemetry_enabled;
     int overlay_required;
+    int lock_aspect;
 };
 
 void rx_usage(const char *argv0);

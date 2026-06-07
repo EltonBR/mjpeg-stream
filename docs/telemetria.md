@@ -60,7 +60,10 @@ Remove elemento basico por `id`.
 ## Servidor de teste Node.js
 
 ```sh
-./telemetry_server.js --host 127.0.0.1 --port 7000 --interval 1
+./telemetry_server.js \
+  --host 127.0.0.1 --port 7000 \
+  --event-host 127.0.0.1 --event-port 6000 \
+  --interval 1
 ```
 
-Ele envia `telemetry` em loop com data, hora, angulo, azimuth, heading, bateria e rotacao.
+Ele envia `telemetry` em loop com data, hora, angulo, azimuth, heading, bateria e rotacao. O mesmo processo tambem abre um servidor TCP de eventos JSON Lines e imprime no console os eventos enviados pelo `mjpeg_rx`.
