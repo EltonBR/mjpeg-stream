@@ -4,7 +4,6 @@
 #include <cairo.h>
 #include <gtk/gtk.h>
 #include <json-c/json.h>
-#include <stdarg.h>
 
 enum widget_type {
     WIDGET_COMPASS,
@@ -108,9 +107,5 @@ void widget_draw_text(cairo_t *cr, const struct overlay_render_context *ctx,
                double alpha, enum widget_anchor anchor);
 void load_widget_pixbuf(const struct overlay_render_context *ctx,
                         struct overlay_widget *widget);
-
-/* Format helpers that force "." as decimal separator regardless of locale. */
-int widget_vsnprintf_dot(char *buf, size_t size, const char *fmt, va_list ap);
-int widget_snprintf_dot(char *buf, size_t size, const char *fmt, ...);
 
 #endif

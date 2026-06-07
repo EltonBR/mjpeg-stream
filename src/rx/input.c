@@ -1,6 +1,5 @@
 #include "input.h"
 #include "ui.h"
-#include "widgets/common/widget_common.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -159,7 +158,7 @@ static gboolean on_motion(GtkWidget *widget, GdkEventMotion *event,
         return FALSE;
     }
 
-    widget_snprintf_dot(json, sizeof(json),
+    snprintf(json, sizeof(json),
              "{\"origin\":\"mouse\",\"type\":\"motion\",\"x\":%.6f,"
              "\"y\":%.6f,\"pixel_x\":%.2f,\"pixel_y\":%.2f,"
              "\"image_w\":%d,\"image_h\":%d,\"state\":%u}",
@@ -183,7 +182,7 @@ static gboolean on_button_press(GtkWidget *widget, GdkEventButton *event,
         return FALSE;
     }
 
-    widget_snprintf_dot(json, sizeof(json),
+    snprintf(json, sizeof(json),
              "{\"origin\":\"mouse\",\"type\":\"mousedown\",\"button\":%u,"
              "\"x\":%.6f,\"y\":%.6f,\"pixel_x\":%.2f,\"pixel_y\":%.2f,"
              "\"image_w\":%d,\"image_h\":%d,\"state\":%u}",
@@ -208,7 +207,7 @@ static gboolean on_button_release(GtkWidget *widget, GdkEventButton *event,
         return FALSE;
     }
 
-    widget_snprintf_dot(json, sizeof(json),
+    snprintf(json, sizeof(json),
              "{\"origin\":\"mouse\",\"type\":\"mouseup\",\"button\":%u,"
              "\"x\":%.6f,\"y\":%.6f,\"pixel_x\":%.2f,\"pixel_y\":%.2f,"
              "\"image_w\":%d,\"image_h\":%d,\"state\":%u}",
@@ -216,7 +215,7 @@ static gboolean on_button_release(GtkWidget *widget, GdkEventButton *event,
              image_w, image_h, event->state);
     event_sender_send(&app->events, json);
 
-    widget_snprintf_dot(json, sizeof(json),
+    snprintf(json, sizeof(json),
              "{\"origin\":\"mouse\",\"type\":\"mousepress\",\"button\":%u,"
              "\"x\":%.6f,\"y\":%.6f,\"pixel_x\":%.2f,\"pixel_y\":%.2f,"
              "\"image_w\":%d,\"image_h\":%d,\"state\":%u}",
@@ -270,7 +269,7 @@ static gboolean on_scroll(GtkWidget *widget, GdkEventScroll *event,
         break;
     }
 
-    widget_snprintf_dot(json, sizeof(json),
+    snprintf(json, sizeof(json),
              "{\"origin\":\"mouse\",\"type\":\"scroll\","
              "\"direction\":\"%s\",\"delta_x\":%.6f,\"delta_y\":%.6f,"
              "\"x\":%.6f,\"y\":%.6f,\"pixel_x\":%.2f,\"pixel_y\":%.2f,"

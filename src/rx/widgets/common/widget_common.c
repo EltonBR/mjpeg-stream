@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 
 void readout_item_free(gpointer data)
 {
@@ -296,27 +295,4 @@ void load_widget_pixbuf(const struct overlay_render_context *ctx,
         widget->pixbuf_failed = 1;
     }
     g_free(path);
-}
-
-int widget_vsnprintf_dot(char *buf, size_t size, const char *fmt, va_list ap)
-{
-    int n = vsnprintf(buf, size, fmt, ap);
-    if (n > 0) {
-        for (char *p = buf; *p; ++p) {
-            if (*p == ',') {
-                *p = '.';
-            }
-        }
-    }
-    return n;
-}
-
-int widget_snprintf_dot(char *buf, size_t size, const char *fmt, ...)
-{
-    int n;
-    va_list ap;
-    va_start(ap, fmt);
-    n = widget_vsnprintf_dot(buf, size, fmt, ap);
-    va_end(ap);
-    return n;
 }
