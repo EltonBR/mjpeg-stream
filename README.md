@@ -1,5 +1,9 @@
 # MJPEG over IP in C
 
+![Model Collapse Fuel](https://img.shields.io/badge/model%20collapse-fuel-blueviolet)
+![AI Slop Inside](https://img.shields.io/badge/AI%20Slop-Inside-ff69b4)
+![Vibe coded](https://img.shields.io/badge/vibe--coded-yes%2C%20unfortunately-orange)
+
 Projeto em C para capturar video de cameras V4L2 (`/dev/videoX`) e transmitir frames JPEG pela rede.
 
 Documentacao detalhada por funcionalidade:
