@@ -3,6 +3,7 @@
 Este diretorio separa a documentacao por funcionalidade.
 
 - [Build e dependencias](build.md)
+- [Arquitetura e ciclo de vida](arquitetura.md)
 - [Transmissor `mjpeg_tx`](transmissor.md)
 - [Receptor `mjpeg_rx`](receptor.md)
 - [Overlay e widgets HUD](overlay-widgets.md)

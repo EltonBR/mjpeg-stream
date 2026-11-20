@@ -1,0 +1,9 @@
+# Ciclo de vida e dados
+
+O transmissor captura frames V4L2 e os envia em TCP, UDP ou HTTP MJPEG. O receptor possui uma thread de rede; no UDP, a remontagem pertence exclusivamente a essa thread. A interface GTK recebe apenas o frame mais recente pendente, protegido por mutex; frames substituídos são liberados imediatamente.
+
+No encerramento, o receptor sinaliza a thread de rede, interrompe a leitura TCP, acorda o `poll` UDP por um pipe de cancelamento e faz `join`. A conexão inicial também ocorre nessa thread e é cancelável. Só depois remove o callback de frame pendente e libera os recursos. O descritor permanece aberto até a thread terminar. A thread do joystick é sinalizada e aguardada antes de fechar o canal de eventos. Telemetria e eventos encerram suas próprias threads antes da liberação do overlay e da configuração. Widgets e atualizações GTK pertencem à thread principal.
+
+A remontagem UDP valida tamanho total, contagem e tamanho exato de cada fragmento. Duplicatas não alteram dados já recebidos. Um intervalo de dois segundos sem fragmentos aceitos permite iniciar uma nova sequência após reinício do transmissor; o formato dos datagramas não mudou.
+
+Clientes TCP/HTTP usam sockets não bloqueantes. Cada cliente mantém no máximo uma mensagem pendente, incluindo a parte ainda não enviada de um frame; o total pendente é limitado a 32 MiB. Enquanto houver dados pendentes, novos frames para esse cliente são descartados. Escritas parciais continuam nos próximos frames e erros definitivos encerram somente o cliente afetado. O envio de eventos usa uma fila limitada a 256 itens e limita as tentativas de reconexão. Sob saturação, eventos contínuos são descartados primeiro para abrir espaço a eventos discretos; se a fila contiver apenas eventos discretos, novos eventos também podem ser descartados. A ordem dos eventos mantidos é preservada. Clientes de vídeo sem progresso por 30 segundos são removidos, inclusive quando a câmera não produz frames.
