@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="overlay-token" content="">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob: http: https:; style-src 'self'; script-src 'self'; connect-src 'self' http: https:">
+  <title>Overlay Designer</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="toolbar">
+    <strong class="brand">Overlay Designer</strong>
+    <button id="load">Abrir do RX</button><button id="save" class="primary">Salvar</button>
+    <span class="separator"></span>
+    <button id="undo" title="Ctrl+Z">↶</button><button id="redo" title="Ctrl+Y">↷</button>
+    <button id="duplicate">Duplicar</button><button id="delete">Excluir</button>
+    <span class="separator"></span>
+    <label class="toolbar-label">Proporção <select id="aspect"><option value="16:9">16:9</option><option value="4:3">4:3</option><option value="custom">Custom</option></select></label>
+    <label class="toolbar-label custom-size hidden">W <input id="customW" type="number" value="960" min="160"></label>
+    <label class="toolbar-label custom-size hidden">H <input id="customH" type="number" value="540" min="120"></label>
+    <label class="toolbar-label"><input id="gridToggle" type="checkbox" checked> Grid</label>
+    <label class="toolbar-label">Passo <input id="gridSize" type="number" value="10" min="1" max="100"></label>
+    <label class="toolbar-label">Stream <input id="streamUrl" type="url" placeholder="http://127.0.0.1:8080/stream.mjpg"></label><button id="streamToggle">Conectar</button>
+    <span id="dirty" class="dirty">Salvo</span>
+  </header>
+  <main class="workspace">
+    <aside class="left-panel panel">
+      <section><h2>Widgets</h2><div class="palette">
+        <button data-add="compass">＋ Compass</button><button data-add="readout">＋ Readout</button>
+        <button data-add="status">＋ Status</button><button data-add="image">＋ Image PNG</button>
+        <button data-add="vertical_ruler">＋ Régua vertical</button><button data-add="horizontal_ruler">＋ Régua horizontal</button>
+      </div></section>
+      <section class="layers-section"><h2>Layers <button id="raise" title="Subir layer">↑</button><button id="lower" title="Descer layer">↓</button></h2><div id="layers" class="layers"></div></section>
+      <section><h2>Telemetria simulada <label class="small"><input id="autoTelemetry" type="checkbox"> animar</label></h2><div id="telemetry" class="telemetry"></div><div class="date-fields"><label>Data <input data-telemetry="date" value="2026-11-20"></label><label>Hora <input data-telemetry="time" value="12:00:00"></label></div></section>
+      <section><h2>Assets PNG</h2><div class="asset-row"><select id="assetList" aria-label="Assets"></select><button id="refreshAssets">↻</button></div><label class="upload">Enviar PNG<input id="upload" type="file" accept="image/png"></label><small>Uploads são enviados ao diretório de assets do overlay.</small></section>
+    </aside>
+    <section class="stage-column">
+      <div class="stage-wrap"><div id="stage" class="stage"><div class="demo-background"></div><img id="stream" alt="Stream MJPEG"><canvas id="canvas"></canvas><div id="selectionBox" class="selection-box hidden"></div></div></div>
+      <div class="stage-footer"><span id="stageSize">960 × 540</span><span>Arraste para mover · alça inferior direita para redimensionar · setas para nudge</span><span id="message" role="status"></span></div>
+      <details class="config-panel"><summary>Configuração overlay.ini</summary><div id="configFields" class="config-fields"></div><button id="saveConfig">Salvar configuração</button><span class="config-note">Alterações em endpoint de telemetria podem exigir reinício do RX.</span></details>
+    </section>
+    <aside class="right-panel panel"><h2>Propriedades</h2><div id="properties" class="properties"><p class="muted">Selecione um widget no canvas ou em Layers.</p></div></aside>
+  </main>
+  <dialog id="confirmDialog"><form method="dialog"><p>Há alterações não salvas. Descartar?</p><div><button value="cancel">Continuar editando</button><button value="discard" class="danger">Descartar</button></div></form></dialog>
+</body>
+</html>
