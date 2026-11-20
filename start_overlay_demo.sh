@@ -3,6 +3,7 @@ set -eu
 
 TX_CONFIG="${TX_CONFIG:-tx.ini}"
 RX_CONFIG="${RX_CONFIG:-rx.ini}"
+OVERLAY_CONFIG="${OVERLAY_CONFIG:-$(dirname "$RX_CONFIG")/overlay.ini}"
 TELEMETRY_INTERVAL="${TELEMETRY_INTERVAL:-0.1}"
 
 HUD_ASSET_SRC="${HUD_ASSET_SRC:-overlays/crosshair.png}"
@@ -35,6 +36,11 @@ if [ ! -f "$RX_CONFIG" ]; then
 fi
 
 ini_value() {
+    config_file="${4:-$RX_CONFIG}"
+    if [ ! -f "$config_file" ]; then
+        printf '%s\n' "$3"
+        return
+    fi
     awk -F= -v section="$1" -v key="$2" -v fallback="$3" '
         function trim(s) {
             sub(/^[ \t\r\n]+/, "", s)
@@ -71,11 +77,11 @@ ini_value() {
             }
         }
         END { print found }
-    ' "$RX_CONFIG"
+    ' "$config_file"
 }
 
-TELEMETRY_HOST="$(ini_value telemetry telemetry_host 127.0.0.1)"
-TELEMETRY_PORT="$(ini_value telemetry telemetry_port 7000)"
+TELEMETRY_HOST="$(ini_value telemetry host "$(ini_value telemetry telemetry_host 127.0.0.1)" "$OVERLAY_CONFIG")"
+TELEMETRY_PORT="$(ini_value telemetry port "$(ini_value telemetry telemetry_port 7000)" "$OVERLAY_CONFIG")"
 EVENT_HOST="$(ini_value events event_host 127.0.0.1)"
 EVENT_PORT="$(ini_value events event_port 6000)"
 
@@ -123,4 +129,8 @@ if ! kill -0 "$tx_pid" 2>/dev/null; then
 fi
 
 echo "abrindo receptor com config ${RX_CONFIG}"
-./mjpeg_rx --config "$RX_CONFIG"
+if [ -f "$OVERLAY_CONFIG" ]; then
+    ./mjpeg_rx --config "$RX_CONFIG" --overlay-config "$OVERLAY_CONFIG"
+else
+    ./mjpeg_rx --config "$RX_CONFIG"
+fi

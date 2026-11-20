@@ -87,10 +87,14 @@ void vertical_ruler_widget_draw(struct overlay_widget *widget, cairo_t *cr,
 {
     double raw_value = widget_template_number(ctx, widget->value_expr, 0.0);
     double value = clamped_value(widget, raw_value);
-    double w = widget_coord_value(widget->w > 0.0 ? widget->w : 86.0, ctx->frame_w);
-    double h = widget_coord_value(widget->h > 0.0 ? widget->h : 0.44, ctx->frame_h);
-    double x = ctx->frame_x + widget_coord_value(widget->x, ctx->frame_w);
-    double y = ctx->frame_y + widget_coord_value(widget->y, ctx->frame_h);
+    double w = widget_coord_value(widget->w > 0.0 ? widget->w : 86.0,
+                                  widget->w_unit, ctx->frame_w);
+    double h = widget_coord_value(widget->h > 0.0 ? widget->h : 0.44,
+                                  widget->h_unit, ctx->frame_h);
+    double x = ctx->frame_x + widget_coord_value(widget->x, widget->x_unit,
+                                                  ctx->frame_w);
+    double y = ctx->frame_y + widget_coord_value(widget->y, widget->y_unit,
+                                                  ctx->frame_h);
     double left;
     double top;
     double center_y;
@@ -171,10 +175,14 @@ void horizontal_ruler_widget_draw(struct overlay_widget *widget, cairo_t *cr,
 {
     double raw_value = widget_template_number(ctx, widget->value_expr, 0.0);
     double value = clamped_value(widget, raw_value);
-    double w = widget_coord_value(widget->w > 0.0 ? widget->w : 0.46, ctx->frame_w);
-    double h = widget_coord_value(widget->h > 0.0 ? widget->h : 70.0, ctx->frame_h);
-    double x = ctx->frame_x + widget_coord_value(widget->x, ctx->frame_w);
-    double y = ctx->frame_y + widget_coord_value(widget->y, ctx->frame_h);
+    double w = widget_coord_value(widget->w > 0.0 ? widget->w : 0.46,
+                                  widget->w_unit, ctx->frame_w);
+    double h = widget_coord_value(widget->h > 0.0 ? widget->h : 70.0,
+                                  widget->h_unit, ctx->frame_h);
+    double x = ctx->frame_x + widget_coord_value(widget->x, widget->x_unit,
+                                                  ctx->frame_w);
+    double y = ctx->frame_y + widget_coord_value(widget->y, widget->y_unit,
+                                                  ctx->frame_h);
     double left;
     double top;
     double center_x;

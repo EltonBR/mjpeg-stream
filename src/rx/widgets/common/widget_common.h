@@ -23,6 +23,12 @@ enum widget_anchor {
     WIDGET_ANCHOR_CENTER
 };
 
+enum widget_coord_unit {
+    WIDGET_COORD_LEGACY,
+    WIDGET_COORD_RELATIVE,
+    WIDGET_COORD_PX
+};
+
 struct overlay_render_context {
     double frame_x;
     double frame_y;
@@ -51,6 +57,10 @@ struct overlay_widget {
     double y;
     double w;
     double h;
+    enum widget_coord_unit x_unit;
+    enum widget_coord_unit y_unit;
+    enum widget_coord_unit w_unit;
+    enum widget_coord_unit h_unit;
     double alpha;
     double size;
     double width;
@@ -95,7 +105,8 @@ struct overlay_widget *widget_base(struct json_object *obj,
 int widget_valid_image_path(const char *file);
 void widget_anchor_origin(enum widget_anchor anchor, double x, double y,
                    double w, double h, double *out_x, double *out_y);
-double widget_coord_value(double value, double extent);
+double widget_coord_value(double value, enum widget_coord_unit unit,
+                          double extent);
 char *widget_expand_template(const struct overlay_render_context *ctx,
                       const char *text);
 double widget_template_number(const struct overlay_render_context *ctx,

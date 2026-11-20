@@ -26,6 +26,7 @@ TX_OBJS = \
 RX_OBJS = \
 	$(BUILD_DIR)/rx/main.o \
 	$(BUILD_DIR)/rx/config.o \
+	$(BUILD_DIR)/rx/overlay_config.o \
 	$(BUILD_DIR)/rx/app.o \
 	$(BUILD_DIR)/rx/ui.o \
 	$(BUILD_DIR)/rx/receiver.o \
@@ -33,6 +34,7 @@ RX_OBJS = \
 	$(BUILD_DIR)/rx/event_sender.o \
 	$(BUILD_DIR)/rx/input.o \
 	$(BUILD_DIR)/rx/overlay.o \
+	$(BUILD_DIR)/rx/overlay_watch.o \
 	$(BUILD_DIR)/rx/overlay_json.o \
 	$(BUILD_DIR)/rx/overlay_draw.o \
 	$(BUILD_DIR)/rx/overlay_widgets.o \
@@ -42,6 +44,7 @@ RX_OBJS = \
 	$(BUILD_DIR)/rx/widgets/status/status_widget.o \
 	$(BUILD_DIR)/rx/widgets/image/image_widget.o \
 	$(BUILD_DIR)/rx/widgets/vertical_ruler/vertical_ruler_widget.o \
+	$(BUILD_DIR)/rx/telemetry_store.o \
 	$(BUILD_DIR)/rx/telemetry.o \
 	$(COMMON_OBJS)
 DISCOVER_OBJS = $(BUILD_DIR)/discover/main.o
@@ -49,9 +52,12 @@ ASSET_COLORIZE_OBJS = $(BUILD_DIR)/tools/asset_colorize.o
 
 -include $(sort $(TX_OBJS:.o=.d) $(RX_OBJS:.o=.d) $(DISCOVER_OBJS:.o=.d) $(ASSET_COLORIZE_OBJS:.o=.d))
 
-.PHONY: all clean static-tx test
+.PHONY: all clean static-tx test overlay-designer
 
 all: mjpeg_tx mjpeg_rx v4l2_discover asset_colorize
+
+overlay-designer:
+	node tools/overlay-designer/server.js --overlay-config overlay.ini
 
 mjpeg_tx: $(TX_OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(JPEG_LIBS)
@@ -80,9 +86,13 @@ $(BUILD_DIR)/tests/test_udp_reassembly: tests/test_udp_reassembly.c src/rx/udp_r
 	mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) -Isrc/rx $(CFLAGS) $(TEST_CFLAGS) -o $@ tests/test_udp_reassembly.c src/rx/udp_reassembly.c
 
-$(BUILD_DIR)/tests/test_telemetry: tests/test_telemetry.c src/rx/telemetry.c src/rx/telemetry.h
+$(BUILD_DIR)/tests/test_telemetry: tests/test_telemetry.c src/rx/telemetry.c src/rx/telemetry.h src/rx/telemetry_store.c src/rx/telemetry_store.h
 	mkdir -p $(dir $@)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(TEST_CFLAGS) $(GTK_CFLAGS) -Isrc/rx -o $@ tests/test_telemetry.c src/rx/telemetry.c $(GTK_LIBS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(TEST_CFLAGS) $(GTK_CFLAGS) $(JSON_CFLAGS) -Isrc/rx -o $@ tests/test_telemetry.c src/rx/telemetry.c src/rx/telemetry_store.c $(GTK_LIBS) $(JSON_LIBS)
+
+$(BUILD_DIR)/tests/test_telemetry_store: tests/test_telemetry_store.c src/rx/telemetry_store.c src/rx/telemetry_store.h
+	mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(TEST_CFLAGS) $(GTK_CFLAGS) $(JSON_CFLAGS) -Isrc/rx -o $@ tests/test_telemetry_store.c src/rx/telemetry_store.c $(JSON_LIBS) $(GTK_LIBS)
 
 $(BUILD_DIR)/tests/test_receiver_shutdown: tests/test_receiver_shutdown.c $(BUILD_DIR)/rx/receiver.o $(BUILD_DIR)/rx/udp_reassembly.o $(BUILD_DIR)/common/net.o
 	mkdir -p $(dir $@)
@@ -92,7 +102,7 @@ $(BUILD_DIR)/tests/test_event_sender: tests/test_event_sender.c src/rx/event_sen
 	mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(TEST_CFLAGS) $(GTK_CFLAGS) -Isrc/rx -o $@ tests/test_event_sender.c src/rx/event_sender.c $(GTK_LIBS)
 
-$(BUILD_DIR)/tests/test_config: tests/test_config.c $(BUILD_DIR)/tx/config.o $(BUILD_DIR)/tx/access_control.o $(BUILD_DIR)/rx/config.o $(BUILD_DIR)/common/ini.o
+$(BUILD_DIR)/tests/test_config: tests/test_config.c $(BUILD_DIR)/tx/config.o $(BUILD_DIR)/tx/access_control.o $(BUILD_DIR)/rx/config.o $(BUILD_DIR)/rx/overlay_config.o $(BUILD_DIR)/common/ini.o
 	mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(TEST_CFLAGS) $(GTK_CFLAGS) -o $@ $^ $(GTK_LIBS)
 
@@ -104,7 +114,15 @@ $(BUILD_DIR)/tests/test_camera_frames: tests/test_camera_frames.c src/tx/jpeg.c 
 	mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) -Isrc/tx $(CFLAGS) $(TEST_CFLAGS) -o $@ tests/test_camera_frames.c src/tx/jpeg.c $(JPEG_LIBS)
 
-OVERLAY_TEST_OBJS = $(filter $(BUILD_DIR)/rx/overlay% $(BUILD_DIR)/rx/widgets/%,$(RX_OBJS))
+OVERLAY_TEST_OBJS = $(filter-out $(BUILD_DIR)/rx/overlay_config.o,$(filter $(BUILD_DIR)/rx/overlay% $(BUILD_DIR)/rx/widgets/%,$(RX_OBJS))) $(BUILD_DIR)/rx/telemetry_store.o
+$(BUILD_DIR)/tests/test_widget_units: tests/test_widget_units.c $(OVERLAY_TEST_OBJS)
+	mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -Isrc $(CFLAGS) $(TEST_CFLAGS) $(GTK_CFLAGS) $(JSON_CFLAGS) -o $@ $^ $(GTK_LIBS) $(JSON_LIBS) $(MATH_LIBS)
+
+$(BUILD_DIR)/tests/test_overlay_watch: tests/test_overlay_watch.c $(OVERLAY_TEST_OBJS)
+	mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -Isrc $(CFLAGS) $(TEST_CFLAGS) $(GTK_CFLAGS) $(JSON_CFLAGS) -o $@ $^ $(GTK_LIBS) $(JSON_LIBS) $(MATH_LIBS)
+
 $(BUILD_DIR)/tests/test_overlay: tests/test_overlay.c $(OVERLAY_TEST_OBJS)
 	mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) -Isrc/rx $(CFLAGS) $(TEST_CFLAGS) $(GTK_CFLAGS) $(JSON_CFLAGS) -o $@ $^ $(GTK_LIBS) $(JSON_LIBS) $(MATH_LIBS)
@@ -113,18 +131,21 @@ $(BUILD_DIR)/tests/test_udp_pipeline: tests/test_udp_pipeline.c $(BUILD_DIR)/rx/
 	mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) -Isrc/tx -Isrc/rx $(CFLAGS) $(TEST_CFLAGS) -o $@ $^
 
-test: $(BUILD_DIR)/tests/test_access_control $(BUILD_DIR)/tests/test_stream $(BUILD_DIR)/tests/test_udp_reassembly $(BUILD_DIR)/tests/test_receiver_shutdown $(BUILD_DIR)/tests/test_telemetry $(BUILD_DIR)/tests/test_event_sender $(BUILD_DIR)/tests/test_config $(BUILD_DIR)/tests/test_camera_resources $(BUILD_DIR)/tests/test_camera_frames $(BUILD_DIR)/tests/test_overlay $(BUILD_DIR)/tests/test_udp_pipeline
+test: $(BUILD_DIR)/tests/test_access_control $(BUILD_DIR)/tests/test_stream $(BUILD_DIR)/tests/test_udp_reassembly $(BUILD_DIR)/tests/test_receiver_shutdown $(BUILD_DIR)/tests/test_telemetry $(BUILD_DIR)/tests/test_telemetry_store $(BUILD_DIR)/tests/test_event_sender $(BUILD_DIR)/tests/test_config $(BUILD_DIR)/tests/test_camera_resources $(BUILD_DIR)/tests/test_camera_frames $(BUILD_DIR)/tests/test_overlay $(BUILD_DIR)/tests/test_udp_pipeline $(BUILD_DIR)/tests/test_widget_units $(BUILD_DIR)/tests/test_overlay_watch
 	./$(BUILD_DIR)/tests/test_access_control
 	./$(BUILD_DIR)/tests/test_stream
 	./$(BUILD_DIR)/tests/test_udp_reassembly
 	./$(BUILD_DIR)/tests/test_receiver_shutdown
 	./$(BUILD_DIR)/tests/test_telemetry
+	./$(BUILD_DIR)/tests/test_telemetry_store
 	./$(BUILD_DIR)/tests/test_event_sender
 	./$(BUILD_DIR)/tests/test_config
 	./$(BUILD_DIR)/tests/test_camera_resources
 	./$(BUILD_DIR)/tests/test_camera_frames
 	./$(BUILD_DIR)/tests/test_overlay
 	./$(BUILD_DIR)/tests/test_udp_pipeline
+	./$(BUILD_DIR)/tests/test_widget_units
+	./$(BUILD_DIR)/tests/test_overlay_watch
 
 $(BUILD_DIR)/tx/main.o: src/tx/main.c src/tx/config.h src/tx/camera.h src/tx/jpeg.h src/tx/stream.h
 	mkdir -p $(dir $@)
@@ -158,11 +179,15 @@ $(BUILD_DIR)/rx/config.o: src/rx/config.c src/rx/config.h src/common/ini.h
 	mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(GTK_CFLAGS) -c -o $@ $<
 
-$(BUILD_DIR)/rx/app.o: src/rx/app.c src/rx/app.h src/rx/overlay.h src/rx/telemetry.h
+$(BUILD_DIR)/rx/overlay_config.o: src/rx/overlay_config.c src/rx/overlay_config.h src/common/ini.h
+	mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/rx/app.o: src/rx/app.c src/rx/app.h src/rx/overlay.h src/rx/telemetry.h src/rx/telemetry_store.h
 	mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(GTK_CFLAGS) $(JSON_CFLAGS) -c -o $@ $<
 
-$(BUILD_DIR)/rx/ui.o: src/rx/ui.c src/rx/ui.h src/rx/app.h src/rx/overlay.h
+$(BUILD_DIR)/rx/ui.o: src/rx/ui.c src/rx/ui.h src/rx/app.h src/rx/overlay.h src/rx/telemetry_store.h
 	mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(GTK_CFLAGS) $(JSON_CFLAGS) -c -o $@ $<
 
@@ -186,7 +211,11 @@ $(BUILD_DIR)/rx/overlay.o: src/rx/overlay.c src/rx/overlay.h src/rx/overlay_widg
 	mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(GTK_CFLAGS) $(JSON_CFLAGS) -c -o $@ $<
 
-$(BUILD_DIR)/rx/overlay_draw.o: src/rx/overlay_draw.c src/rx/overlay.h src/rx/overlay_widgets.h
+$(BUILD_DIR)/rx/overlay_watch.o: src/rx/overlay_watch.c src/rx/overlay_watch.h
+	mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(GTK_CFLAGS) $(JSON_CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/rx/overlay_draw.o: src/rx/overlay_draw.c src/rx/overlay.h src/rx/overlay_widgets.h src/rx/telemetry_store.h
 	mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(GTK_CFLAGS) $(JSON_CFLAGS) -c -o $@ $<
 
@@ -222,7 +251,11 @@ $(BUILD_DIR)/rx/widgets/vertical_ruler/vertical_ruler_widget.o: src/rx/widgets/v
 	mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(GTK_CFLAGS) $(JSON_CFLAGS) -c -o $@ $<
 
-$(BUILD_DIR)/rx/telemetry.o: src/rx/telemetry.c src/rx/telemetry.h src/rx/overlay.h src/common/net.h
+$(BUILD_DIR)/rx/telemetry.o: src/rx/telemetry.c src/rx/telemetry.h src/rx/overlay.h src/rx/telemetry_store.h src/common/net.h
+	mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(GTK_CFLAGS) $(JSON_CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/rx/telemetry_store.o: src/rx/telemetry_store.c src/rx/telemetry_store.h
 	mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(GTK_CFLAGS) $(JSON_CFLAGS) -c -o $@ $<
 

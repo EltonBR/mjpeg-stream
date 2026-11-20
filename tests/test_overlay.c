@@ -1,4 +1,5 @@
 #include "overlay.h"
+#include "telemetry_store.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,6 +123,7 @@ static void test_load_json_updates_and_draw(void)
     char path[sizeof("/tmp/mjpeg-overlay-test-XXXXXX")];
     char bad_path[sizeof("/tmp/mjpeg-overlay-test-XXXXXX")];
     struct overlay_state overlay;
+    TelemetryStore *store;
     struct overlay_element *baseline;
     struct overlay_element *caption;
     cairo_surface_t *surface;
@@ -131,6 +133,7 @@ static void test_load_json_updates_and_draw(void)
     CHECK("cria configuração inválida", write_temp_file(bad_path, sizeof(bad_path), malformed) == 0);
 
     overlay_init(&overlay);
+    store = telemetry_store_new();
     overlay_set_dim_alpha(&overlay, 0.0);
     CHECK("carrega arquivo JSON", overlay_load_file(&overlay, path) == 0);
     CHECK("overlay fica habilitado", overlay.enabled == 1);
@@ -151,6 +154,9 @@ static void test_load_json_updates_and_draw(void)
 
     overlay_apply_json_line(&overlay, "{\"type\":\"telemetry\",\"value\":\"42\"}");
     CHECK("telemetria atualiza variável", strcmp(g_hash_table_lookup(overlay.vars, "value"), "42") == 0);
+    CHECK("store recebe telemetria separadamente",
+          telemetry_store_update_json(store,
+              "{\"type\":\"telemetry\",\"value\":\"42\"}"));
 
     overlay_apply_json_line(&overlay,
         "{\"type\":\"set\",\"id\":\"baseline\",\"visible\":false,\"x\":17,\"alpha\":0.5}");
@@ -167,7 +173,7 @@ static void test_load_json_updates_and_draw(void)
     surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 40, 40);
     cr = cairo_create(surface);
     clear_surface(cr);
-    overlay_draw(&overlay, cr, 0, 0, 40, 40);
+    overlay_draw_with_store(&overlay, store, cr, 0, 0, 40, 40);
     CHECK("renderiza linha em surface sem display", count_green_pixels(surface) > 0);
     CHECK("renderiza texto com valor de telemetria",
           count_green_pixels(surface) > 10);
@@ -194,14 +200,66 @@ static void test_load_json_updates_and_draw(void)
 
     cairo_destroy(cr);
     cairo_surface_destroy(surface);
+    telemetry_store_free(store);
     overlay_cleanup(&overlay);
     unlink(path);
     unlink(bad_path);
 }
 
+static void test_transactional_widget_load(void)
+{
+    char good[sizeof("/tmp/mjpeg-overlay-test-XXXXXX")];
+    char bad[sizeof("/tmp/mjpeg-overlay-test-XXXXXX")];
+    char malformed[sizeof("/tmp/mjpeg-overlay-test-XXXXXX")];
+    struct overlay_state overlay;
+    struct overlay_widget *widget;
+    CHECK("cria layout de widgets", write_temp_file(good, sizeof(good),
+          "{\"widgets\":[{\"id\":\"heading\",\"type\":\"status\",\"text\":\"ok\"},"
+          "{\"id\":\"readout\",\"type\":\"readout\",\"items\":[{\"label\":\"A: \",\"value\":\"{a}\"}]},"
+          "{\"id\":\"compass\",\"type\":\"compass\"}]}") == 0);
+    CHECK("cria layout com IDs duplicados", write_temp_file(bad, sizeof(bad),
+          "{\"widgets\":[{\"id\":\"dup\",\"type\":\"status\"},{\"id\":\"dup\",\"type\":\"status\"}]}") == 0);
+    CHECK("cria layout malformado", write_temp_file(malformed, sizeof(malformed),
+          "{\"elements\":[{\"id\":\"bad\",\"type\":\"line\",\"x\":\"bad\"}],"
+          "\"widgets\":[{\"id\":\"r\",\"type\":\"readout\",\"items\":[{}]}]}") == 0);
+    overlay_init(&overlay);
+    CHECK("carrega widgets", overlay_load_file(&overlay, good) == 0 && overlay.widgets->len == 3);
+    overlay_apply_json_line(&overlay, "{\"type\":\"set\",\"id\":\"heading\",\"x\":24,\"visible\":false}");
+    widget = g_ptr_array_index(overlay.widgets, 0);
+    CHECK("set altera widget", widget->x == 24 && !widget->visible);
+    overlay_apply_json_line(&overlay,
+          "{\"type\":\"set\",\"id\":\"heading\",\"x\":99,\"alpha\":\"inválido\"}");
+    widget = g_ptr_array_index(overlay.widgets, 0);
+    CHECK("set inválido não aplica parcialmente", widget->x == 24 && widget->alpha == 1.0);
+    overlay_apply_json_line(&overlay,
+          "{\"type\":\"set\",\"id\":\"readout\",\"items\":[{\"label\":\"B: \",\"value\":\"{b}\"}]}");
+    widget = g_ptr_array_index(overlay.widgets, 1);
+    CHECK("set troca items", widget->items && widget->items->len == 1 &&
+          strcmp(((struct readout_item *)g_ptr_array_index(widget->items, 0))->label, "B: ") == 0);
+    overlay_apply_json_line(&overlay,
+          "{\"type\":\"set\",\"id\":\"compass\",\"labels\":[\"Norte\",\"NE\",\"Leste\","
+          "\"SE\",\"Sul\",\"SO\",\"Oeste\",\"NO\"]}");
+    widget = g_ptr_array_index(overlay.widgets, 2);
+    CHECK("set troca labels", strcmp(widget->compass_labels[0], "Norte") == 0);
+    overlay_apply_json_line(&overlay,
+          "{\"type\":\"set\",\"id\":\"compass\",\"x\":77,\"labels\":[\"bad\"]}");
+    widget = g_ptr_array_index(overlay.widgets, 2);
+    CHECK("labels inválidos não aplicam parcialmente", widget->x == 0.0 &&
+          strcmp(widget->compass_labels[0], "Norte") == 0);
+    CHECK("IDs duplicados preservam layout ativo", overlay_load_file(&overlay, bad) < 0 &&
+          overlay.widgets->len == 3);
+    CHECK("carga malformada preserva layout ativo", overlay_load_file(&overlay, malformed) < 0 &&
+          overlay.widgets->len == 3);
+    overlay_cleanup(&overlay);
+    unlink(good);
+    unlink(bad);
+    unlink(malformed);
+}
+
 int main(void)
 {
     test_load_json_updates_and_draw();
+    test_transactional_widget_load();
     if (failures) {
         fprintf(stderr, "%u de %u verificações de overlay falharam\n", failures, checks);
         return 1;

@@ -1,4 +1,5 @@
 #include "telemetry.h"
+#include "overlay.h"
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -11,68 +12,81 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-struct telemetry_redraw_state {
+struct telemetry_notify_state {
     gint references;
     gint cancelled;
     GMutex mutex;
-    guint source_id;
-    GtkWidget *drawing_area;
+    GSource *source;
+    GMainContext *context;
+    telemetry_notify_func notify;
+    gpointer user_data;
 };
 
-static struct telemetry_redraw_state *redraw_state_new(GtkWidget *drawing_area)
+static struct telemetry_notify_state *notify_state_new(
+    GMainContext *context, telemetry_notify_func notify, gpointer user_data)
 {
-    struct telemetry_redraw_state *state =
-        g_new0(struct telemetry_redraw_state, 1);
+    struct telemetry_notify_state *state =
+        g_new0(struct telemetry_notify_state, 1);
     state->references = 1;
     g_mutex_init(&state->mutex);
-    state->drawing_area = g_object_ref(drawing_area);
+    state->context = g_main_context_ref(context ? context :
+                                         g_main_context_default());
+    state->notify = notify;
+    state->user_data = user_data;
     return state;
 }
 
-static struct telemetry_redraw_state *redraw_state_ref(
-    struct telemetry_redraw_state *state)
+static struct telemetry_notify_state *notify_state_ref(
+    struct telemetry_notify_state *state)
 {
     g_atomic_int_inc(&state->references);
     return state;
 }
 
-static void redraw_state_unref(gpointer data)
+static void notify_state_unref(gpointer data)
 {
-    struct telemetry_redraw_state *state = data;
+    struct telemetry_notify_state *state = data;
 
     if (g_atomic_int_dec_and_test(&state->references)) {
-        g_object_unref(state->drawing_area);
+        g_main_context_unref(state->context);
         g_mutex_clear(&state->mutex);
         g_free(state);
     }
 }
 
-static gboolean queue_redraw_idle(gpointer data)
+static gboolean notify_idle(gpointer data)
 {
-    struct telemetry_redraw_state *state = data;
+    struct telemetry_notify_state *state = data;
+    GSource *source;
     gboolean active;
 
     g_mutex_lock(&state->mutex);
-    state->source_id = 0;
+    source = state->source;
+    state->source = NULL;
     active = !g_atomic_int_get(&state->cancelled);
     g_mutex_unlock(&state->mutex);
 
-    if (active && !gtk_widget_in_destruction(state->drawing_area)) {
-        gtk_widget_queue_draw(state->drawing_area);
+    if (source) {
+        g_source_unref(source);
+    }
+    if (active && state->notify) {
+        state->notify(state->user_data);
     }
     return G_SOURCE_REMOVE;
 }
 
-static void schedule_redraw(struct telemetry_client *client)
+static void schedule_notification(struct telemetry_client *client)
 {
-    struct telemetry_redraw_state *state = client->redraw;
+    struct telemetry_notify_state *state = client->notification;
 
     if (state) {
         g_mutex_lock(&state->mutex);
-        if (!g_atomic_int_get(&state->cancelled) && !state->source_id) {
-            state->source_id = g_idle_add_full(
-                G_PRIORITY_DEFAULT_IDLE, queue_redraw_idle,
-                redraw_state_ref(state), redraw_state_unref);
+        if (!g_atomic_int_get(&state->cancelled) && !state->source) {
+            state->source = g_idle_source_new();
+            g_source_set_priority(state->source, G_PRIORITY_DEFAULT_IDLE);
+            g_source_set_callback(state->source, notify_idle,
+                                  notify_state_ref(state), notify_state_unref);
+            g_source_attach(state->source, state->context);
         }
         g_mutex_unlock(&state->mutex);
     }
@@ -80,7 +94,7 @@ static void schedule_redraw(struct telemetry_client *client)
 
 static gboolean wait_before_retry(struct telemetry_client *client)
 {
-    gint64 deadline = g_get_monotonic_time() + G_TIME_SPAN_SECOND;
+    gint64 deadline = g_get_monotonic_time() + (gint64)client->reconnect_ms * 1000;
     gboolean keep_running;
 
     g_mutex_lock(&client->mutex);
@@ -280,8 +294,11 @@ static gpointer telemetry_thread(gpointer data)
             if (rc == 2) {
                 continue;
             }
-            overlay_apply_json_line(client->overlay, line);
-            schedule_redraw(client);
+            if (!client->store ||
+                !telemetry_store_update_json(client->store, line)) {
+                overlay_apply_json_line(client->overlay, line);
+            }
+            schedule_notification(client);
         }
 
         g_mutex_lock(&client->mutex);
@@ -309,14 +326,30 @@ void telemetry_init(struct telemetry_client *client)
 
 void telemetry_start(struct telemetry_client *client, const char *host,
                      const char *port, struct overlay_state *overlay,
-                     GtkWidget *drawing_area)
+                     GMainContext *context,
+                     telemetry_notify_func notify, gpointer user_data,
+                     unsigned reconnect_ms)
 {
+    telemetry_start_with_store(client, host, port, overlay, NULL,
+                               context, notify, user_data, reconnect_ms);
+}
+
+void telemetry_start_with_store(struct telemetry_client *client,
+                                const char *host, const char *port,
+                                struct overlay_state *overlay,
+                                TelemetryStore *store,
+                                GMainContext *context,
+                                telemetry_notify_func notify,
+                                gpointer user_data,
+                                unsigned reconnect_ms)
+{
+    client->reconnect_ms = reconnect_ms ? reconnect_ms : 1000;
     client->host = host;
     client->port = port;
     client->overlay = overlay;
-    client->drawing_area = drawing_area;
-    if (drawing_area) {
-        client->redraw = redraw_state_new(drawing_area);
+    client->store = store;
+    if (notify) {
+        client->notification = notify_state_new(context, notify, user_data);
     }
     client->enabled = 1;
     client->thread = g_thread_new("telemetry", telemetry_thread, client);
@@ -324,21 +357,22 @@ void telemetry_start(struct telemetry_client *client, const char *host,
 
 void telemetry_close(struct telemetry_client *client)
 {
-    guint source_id = 0;
+    GSource *source = NULL;
 
     if (!client->synchronization_initialized) {
         return;
     }
 
     g_atomic_int_set(&client->stopping, 1);
-    if (client->redraw) {
-        g_mutex_lock(&client->redraw->mutex);
-        g_atomic_int_set(&client->redraw->cancelled, 1);
-        source_id = client->redraw->source_id;
-        client->redraw->source_id = 0;
-        g_mutex_unlock(&client->redraw->mutex);
-        if (source_id) {
-            g_source_remove(source_id);
+    if (client->notification) {
+        g_mutex_lock(&client->notification->mutex);
+        g_atomic_int_set(&client->notification->cancelled, 1);
+        source = client->notification->source;
+        client->notification->source = NULL;
+        g_mutex_unlock(&client->notification->mutex);
+        if (source) {
+            g_source_destroy(source);
+            g_source_unref(source);
         }
     }
     g_mutex_lock(&client->mutex);
@@ -353,11 +387,10 @@ void telemetry_close(struct telemetry_client *client)
         g_thread_join(thread);
     }
     client->enabled = 0;
-    if (client->redraw) {
-        redraw_state_unref(client->redraw);
-        client->redraw = NULL;
+    if (client->notification) {
+        notify_state_unref(client->notification);
+        client->notification = NULL;
     }
-    client->drawing_area = NULL;
     g_cond_clear(&client->condition);
     g_mutex_clear(&client->mutex);
     client->synchronization_initialized = FALSE;

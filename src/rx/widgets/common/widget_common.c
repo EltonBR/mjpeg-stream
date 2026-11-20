@@ -121,6 +121,20 @@ static enum widget_anchor parse_anchor(const char *anchor)
     return WIDGET_ANCHOR_TOP_LEFT;
 }
 
+static enum widget_coord_unit parse_coord_unit(struct json_object *obj,
+                                                const char *key)
+{
+    const char *unit = widget_json_get_string_default(obj, key, NULL);
+
+    if (unit && strcmp(unit, "relative") == 0) {
+        return WIDGET_COORD_RELATIVE;
+    }
+    if (unit && strcmp(unit, "px") == 0) {
+        return WIDGET_COORD_PX;
+    }
+    return WIDGET_COORD_LEGACY;
+}
+
 struct overlay_widget *widget_base(struct json_object *obj,
                                    enum widget_type type)
 {
@@ -134,6 +148,10 @@ struct overlay_widget *widget_base(struct json_object *obj,
     widget->y = widget_json_get_double_default(obj, "y", 0.0);
     widget->w = widget_json_get_double_default(obj, "w", 0.0);
     widget->h = widget_json_get_double_default(obj, "h", 0.0);
+    widget->x_unit = parse_coord_unit(obj, "x_unit");
+    widget->y_unit = parse_coord_unit(obj, "y_unit");
+    widget->w_unit = parse_coord_unit(obj, "w_unit");
+    widget->h_unit = parse_coord_unit(obj, "h_unit");
     widget->alpha = widget_json_get_double_default(obj, "alpha", 1.0);
     widget->size = widget_json_get_double_default(obj, "size", 16.0);
     widget->width = widget_json_get_double_default(obj, "width", 2.0);
@@ -173,9 +191,11 @@ void widget_anchor_origin(enum widget_anchor anchor, double x, double y,
     }
 }
 
-double widget_coord_value(double value, double extent)
+double widget_coord_value(double value, enum widget_coord_unit unit,
+                          double extent)
 {
-    if (value >= 0.0 && value <= 1.0) {
+    if (unit == WIDGET_COORD_RELATIVE ||
+        (unit == WIDGET_COORD_LEGACY && value >= 0.0 && value <= 1.0)) {
         return value * extent;
     }
     return value;

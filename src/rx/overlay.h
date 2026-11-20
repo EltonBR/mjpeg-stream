@@ -5,6 +5,7 @@
 #include <gtk/gtk.h>
 
 #include "overlay_widgets.h"
+#include "telemetry_store.h"
 
 enum overlay_type {
     OVERLAY_IMAGE,
@@ -50,6 +51,8 @@ struct overlay_element {
 struct overlay_state {
     int enabled;
     char *assets_dir;
+    char *assets_base;
+    char *assets_override;
     double hud_r;
     double hud_g;
     double hud_b;
@@ -72,10 +75,16 @@ int overlay_set_dim(struct overlay_state *overlay, const char *color,
 void overlay_set_dim_alpha(struct overlay_state *overlay, double alpha);
 double overlay_get_dim_alpha(struct overlay_state *overlay);
 int overlay_load_file(struct overlay_state *overlay, const char *path);
+void overlay_set_assets_paths(struct overlay_state *overlay, const char *base,
+                              const char *override_path);
 void overlay_cleanup(struct overlay_state *overlay);
 void overlay_draw(struct overlay_state *overlay, cairo_t *cr,
                   double frame_x, double frame_y, double frame_w,
                   double frame_h);
+void overlay_draw_with_store(struct overlay_state *overlay,
+                             TelemetryStore *store, cairo_t *cr,
+                             double frame_x, double frame_y,
+                             double frame_w, double frame_h);
 void overlay_apply_json_line(struct overlay_state *overlay, const char *line);
 
 #endif

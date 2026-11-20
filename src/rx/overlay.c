@@ -5,6 +5,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+void overlay_set_assets_paths(struct overlay_state *overlay, const char *base,
+                              const char *override_path)
+{
+    g_mutex_lock(&overlay->lock);
+    free(overlay->assets_base);
+    free(overlay->assets_override);
+    overlay->assets_base = base ? strdup(base) : NULL;
+    overlay->assets_override = override_path ? strdup(override_path) : NULL;
+    g_mutex_unlock(&overlay->lock);
+}
+
 void overlay_element_free(gpointer data)
 {
     struct overlay_element *el = data;
@@ -139,6 +150,8 @@ double overlay_get_dim_alpha(struct overlay_state *overlay)
 void overlay_cleanup(struct overlay_state *overlay)
 {
     free(overlay->assets_dir);
+    free(overlay->assets_base);
+    free(overlay->assets_override);
     overlay->assets_dir = NULL;
     free(overlay->hud_font);
     overlay->hud_font = NULL;

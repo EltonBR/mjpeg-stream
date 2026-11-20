@@ -4,6 +4,7 @@
 #include "event_sender.h"
 #include "overlay.h"
 #include "telemetry.h"
+#include "telemetry_store.h"
 
 #include <gtk/gtk.h>
 #include <stdint.h>
@@ -27,6 +28,7 @@ struct rx_app {
     int fd;
     int listen_fd;
     int use_udp;
+    int overlay_enabled;
     GThread *receiver_thread;
     gint receiver_stopping;
     GMutex receiver_mutex;
@@ -43,6 +45,7 @@ struct rx_app {
     guint frame_source;
     struct event_sender events;
     struct overlay_state overlay;
+    TelemetryStore *telemetry_store;
     struct telemetry_client telemetry;
     const char *joystick_device;
     GThread *joystick_thread;

@@ -10,22 +10,13 @@ struct rx_config {
     char *event_host;
     char *event_port;
     char *joystick_device;
-    char *overlay_path;
-    char *hud_color;
-    char *hud_font;
-    char *dim_color;
-    double dim_alpha;
     char *zoom_in_key;
     char *zoom_out_key;
     char *dim_alpha_up_key;
     char *dim_alpha_down_key;
     double dim_alpha_step;
-    char *telemetry_host;
-    char *telemetry_port;
     int events_enabled;
     int joystick_enabled;
-    int telemetry_enabled;
-    int overlay_required;
     int lock_aspect;
 };
 

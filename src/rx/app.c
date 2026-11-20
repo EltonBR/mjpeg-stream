@@ -21,6 +21,7 @@ void rx_app_init(struct rx_app *app, int use_udp, const char *joystick_device,
     g_mutex_init(&app->receiver_mutex);
     app->listen_fd = -1;
     app->use_udp = use_udp;
+    app->overlay_enabled = 1;
     app->zoom = 1.0;
     app->zoom_in_key = zoom_in_key;
     app->zoom_out_key = zoom_out_key;
@@ -32,6 +33,7 @@ void rx_app_init(struct rx_app *app, int use_udp, const char *joystick_device,
     app->joystick_enabled = joystick_enabled;
     event_sender_init(&app->events);
     overlay_init(&app->overlay);
+    app->telemetry_store = telemetry_store_new();
     telemetry_init(&app->telemetry);
 }
 
@@ -62,6 +64,8 @@ void rx_app_cleanup(struct rx_app *app)
     }
     
     telemetry_close(&app->telemetry);
+    telemetry_store_free(app->telemetry_store);
+    app->telemetry_store = NULL;
     event_sender_close(&app->events);
     overlay_cleanup(&app->overlay);
 

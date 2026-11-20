@@ -35,10 +35,12 @@ void image_widget_draw(struct overlay_widget *widget, cairo_t *cr,
         return;
     }
 
-    x = ctx->frame_x + widget_coord_value(widget->x, ctx->frame_w);
-    y = ctx->frame_y + widget_coord_value(widget->y, ctx->frame_h);
-    w = widget_coord_value(widget->w, ctx->frame_w);
-    h = widget_coord_value(widget->h, ctx->frame_h);
+    x = ctx->frame_x + widget_coord_value(widget->x, widget->x_unit,
+                                          ctx->frame_w);
+    y = ctx->frame_y + widget_coord_value(widget->y, widget->y_unit,
+                                          ctx->frame_h);
+    w = widget_coord_value(widget->w, widget->w_unit, ctx->frame_w);
+    h = widget_coord_value(widget->h, widget->h_unit, ctx->frame_h);
     if (w <= 0.0) {
         w = gdk_pixbuf_get_width(widget->pixbuf);
     }

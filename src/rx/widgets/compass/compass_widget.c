@@ -40,10 +40,14 @@ void compass_widget_draw(struct overlay_widget *widget, cairo_t *cr,
                          const struct overlay_render_context *ctx)
 {
     double azimuth = 0.0;
-    double w = widget_coord_value(widget->w > 0.0 ? widget->w : 0.48, ctx->frame_w);
-    double h = widget_coord_value(widget->h > 0.0 ? widget->h : 58.0, ctx->frame_h);
-    double x = ctx->frame_x + widget_coord_value(widget->x, ctx->frame_w);
-    double y = ctx->frame_y + widget_coord_value(widget->y, ctx->frame_h);
+    double w = widget_coord_value(widget->w > 0.0 ? widget->w : 0.48,
+                                  widget->w_unit, ctx->frame_w);
+    double h = widget_coord_value(widget->h > 0.0 ? widget->h : 58.0,
+                                  widget->h_unit, ctx->frame_h);
+    double x = ctx->frame_x + widget_coord_value(widget->x, widget->x_unit,
+                                                  ctx->frame_w);
+    double y = ctx->frame_y + widget_coord_value(widget->y, widget->y_unit,
+                                                  ctx->frame_h);
     double left;
     double top;
     int base;

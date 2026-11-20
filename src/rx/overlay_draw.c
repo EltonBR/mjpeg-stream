@@ -20,8 +20,7 @@ static double coord_value(double value, double extent)
     return value;
 }
 
-static char *expand_template_locked(struct overlay_state *overlay,
-                                    const char *text)
+static char *expand_template_locked(GHashTable *vars, const char *text)
 {
     GString *out = g_string_new("");
     const char *p = text;
@@ -43,7 +42,7 @@ static char *expand_template_locked(struct overlay_state *overlay,
             break;
         }
         key = g_strndup(open + 1, close - open - 1);
-        value = g_hash_table_lookup(overlay->vars, key);
+        value = g_hash_table_lookup(vars, key);
         if (value) {
             g_string_append(out, value);
         }
@@ -54,8 +53,8 @@ static char *expand_template_locked(struct overlay_state *overlay,
     return g_string_free(out, FALSE);
 }
 
-static double rotation_value_locked(struct overlay_state *overlay,
-                                    struct overlay_element *el)
+static double rotation_value_locked(struct overlay_element *el,
+                                    GHashTable *vars)
 {
     double value;
     char *expanded;
@@ -64,7 +63,7 @@ static double rotation_value_locked(struct overlay_state *overlay,
     if (!el->rotation_expr) {
         return el->rotation;
     }
-    expanded = expand_template_locked(overlay, el->rotation_expr);
+    expanded = expand_template_locked(vars, el->rotation_expr);
     value = g_ascii_strtod(expanded, &end);
     if (!expanded[0] || !end || *end != '\0') {
         value = 0.0;
@@ -116,7 +115,8 @@ static void load_pixbuf_locked(struct overlay_state *overlay,
 
 static void draw_image_locked(struct overlay_state *overlay,
                               struct overlay_element *el, cairo_t *cr,
-                              double fx, double fy, double fw, double fh)
+                              double fx, double fy, double fw, double fh,
+                              GHashTable *vars)
 {
     double x;
     double y;
@@ -142,7 +142,7 @@ static void draw_image_locked(struct overlay_state *overlay,
         h = gdk_pixbuf_get_height(el->pixbuf);
     }
     anchored_top_left(el->anchor, x, y, w, h, &left, &top);
-    angle = rotation_value_locked(overlay, el) * G_PI / 180.0;
+    angle = rotation_value_locked(el, vars) * G_PI / 180.0;
 
     cairo_save(cr);
     cairo_translate(cr, left + w / 2.0, top + h / 2.0);
@@ -158,9 +158,10 @@ static void draw_image_locked(struct overlay_state *overlay,
 
 static void draw_label_locked(struct overlay_state *overlay,
                               struct overlay_element *el, cairo_t *cr,
-                              double fx, double fy, double fw, double fh)
+                              double fx, double fy, double fw, double fh,
+                              GHashTable *vars)
 {
-    char *text = expand_template_locked(overlay, el->text);
+    char *text = expand_template_locked(vars, el->text);
     cairo_text_extents_t ext;
     double x = fx + coord_value(el->x, fw);
     double y = fy + coord_value(el->y, fh);
@@ -184,7 +185,8 @@ static void draw_label_locked(struct overlay_state *overlay,
 
 static void draw_line_locked(struct overlay_state *overlay,
                              struct overlay_element *el, cairo_t *cr,
-                             double fx, double fy, double fw, double fh)
+                             double fx, double fy, double fw, double fh,
+                             GHashTable *vars)
 {
     double x1 = fx + coord_value(el->x1, fw);
     double y1 = fy + coord_value(el->y1, fh);
@@ -192,7 +194,7 @@ static void draw_line_locked(struct overlay_state *overlay,
     double y2 = fy + coord_value(el->y2, fh);
     double cx = (x1 + x2) / 2.0;
     double cy = (y1 + y2) / 2.0;
-    double angle = rotation_value_locked(overlay, el) * G_PI / 180.0;
+    double angle = rotation_value_locked(el, vars) * G_PI / 180.0;
     double cos_a = cos(angle);
     double sin_a = sin(angle);
     double dx1 = x1 - cx;
@@ -214,26 +216,34 @@ static void draw_line_locked(struct overlay_state *overlay,
     cairo_restore(cr);
 }
 
+struct draw_item { int z; int widget; void *item; };
 static gint compare_z(gconstpointer a, gconstpointer b)
 {
-    const struct overlay_element *ea = *(const struct overlay_element * const *)a;
-    const struct overlay_element *eb = *(const struct overlay_element * const *)b;
-    return ea->z_index - eb->z_index;
+    const struct draw_item *ea = *(const struct draw_item * const *)a;
+    const struct draw_item *eb = *(const struct draw_item * const *)b;
+    return (ea->z > eb->z) - (ea->z < eb->z);
 }
 
-void overlay_draw(struct overlay_state *overlay, cairo_t *cr,
-                  double frame_x, double frame_y, double frame_w,
-                  double frame_h)
+void overlay_draw_with_store(struct overlay_state *overlay,
+                             TelemetryStore *store, cairo_t *cr,
+                             double frame_x, double frame_y,
+                             double frame_w, double frame_h)
 {
     GPtrArray *sorted;
     unsigned i;
     struct overlay_render_context ctx;
+    GHashTable *snapshot = store ? telemetry_store_snapshot(store) : NULL;
+    GHashTable *vars;
 
     g_mutex_lock(&overlay->lock);
     if (!overlay->enabled) {
         g_mutex_unlock(&overlay->lock);
+        if (snapshot) {
+            g_hash_table_destroy(snapshot);
+        }
         return;
     }
+    vars = snapshot ? snapshot : overlay->vars;
     ctx.frame_x = frame_x;
     ctx.frame_y = frame_y;
     ctx.frame_w = frame_w;
@@ -243,9 +253,9 @@ void overlay_draw(struct overlay_state *overlay, cairo_t *cr,
     ctx.hud_b = overlay->hud_b;
     ctx.hud_font = overlay->hud_font ? overlay->hud_font : "Monospace";
     ctx.assets_dir = overlay->assets_dir;
-    ctx.vars = overlay->vars;
+    ctx.vars = vars;
 
-    sorted = g_ptr_array_new();
+    sorted = g_ptr_array_new_with_free_func(g_free);
     if (overlay->dim_alpha > 0.0) {
         cairo_save(cr);
         cairo_set_source_rgba(cr, overlay->dim_r, overlay->dim_g,
@@ -258,22 +268,48 @@ void overlay_draw(struct overlay_state *overlay, cairo_t *cr,
     for (i = 0; i < overlay->elements->len; i++) {
         struct overlay_element *el = g_ptr_array_index(overlay->elements, i);
         if (el->visible) {
-            g_ptr_array_add(sorted, el);
+            struct draw_item *item = g_new(struct draw_item, 1);
+            *item = (struct draw_item){el->z_index, 0, el};
+            g_ptr_array_add(sorted, item);
+        }
+    }
+    for (i = 0; i < overlay->widgets->len; i++) {
+        struct overlay_widget *w = g_ptr_array_index(overlay->widgets, i);
+        if (w->visible) {
+            struct draw_item *item = g_new(struct draw_item, 1);
+            *item = (struct draw_item){w->z_index, 1, w};
+            g_ptr_array_add(sorted, item);
         }
     }
     g_ptr_array_sort(sorted, compare_z);
 
     for (i = 0; i < sorted->len; i++) {
-        struct overlay_element *el = g_ptr_array_index(sorted, i);
-        if (el->type == OVERLAY_IMAGE) {
-            draw_image_locked(overlay, el, cr, frame_x, frame_y, frame_w, frame_h);
+        struct draw_item *item = g_ptr_array_index(sorted, i);
+        struct overlay_element *el = item->item;
+        if (item->widget) {
+            overlay_widget_draw_one(item->item, cr, &ctx);
+        } else if (el->type == OVERLAY_IMAGE) {
+            draw_image_locked(overlay, el, cr, frame_x, frame_y, frame_w,
+                              frame_h, vars);
         } else if (el->type == OVERLAY_LABEL) {
-            draw_label_locked(overlay, el, cr, frame_x, frame_y, frame_w, frame_h);
+            draw_label_locked(overlay, el, cr, frame_x, frame_y, frame_w,
+                              frame_h, vars);
         } else if (el->type == OVERLAY_LINE) {
-            draw_line_locked(overlay, el, cr, frame_x, frame_y, frame_w, frame_h);
+            draw_line_locked(overlay, el, cr, frame_x, frame_y, frame_w,
+                             frame_h, vars);
         }
     }
     g_ptr_array_free(sorted, TRUE);
-    overlay_widgets_draw(overlay->widgets, cr, &ctx);
     g_mutex_unlock(&overlay->lock);
+    if (snapshot) {
+        g_hash_table_destroy(snapshot);
+    }
+}
+
+void overlay_draw(struct overlay_state *overlay, cairo_t *cr,
+                  double frame_x, double frame_y, double frame_w,
+                  double frame_h)
+{
+    overlay_draw_with_store(overlay, NULL, cr, frame_x, frame_y, frame_w,
+                            frame_h);
 }

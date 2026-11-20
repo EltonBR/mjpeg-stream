@@ -216,7 +216,9 @@ static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data)
     cairo_save(cr);
     cairo_rectangle(cr, 0, 0, widget_w, widget_h);
     cairo_clip(cr);
-    overlay_draw(&app->overlay, cr, 0.0, 0.0, widget_w, widget_h);
+    if (app->overlay_enabled)
+        overlay_draw_with_store(&app->overlay, app->telemetry_store, cr,
+                                0.0, 0.0, widget_w, widget_h);
     cairo_restore(cr);
     return FALSE;
 }

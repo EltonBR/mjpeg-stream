@@ -36,8 +36,10 @@ struct overlay_widget *readout_widget_parse(struct json_object *obj)
 void readout_widget_draw(struct overlay_widget *widget, cairo_t *cr,
                          const struct overlay_render_context *ctx)
 {
-    double x = ctx->frame_x + widget_coord_value(widget->x, ctx->frame_w);
-    double y = ctx->frame_y + widget_coord_value(widget->y, ctx->frame_h);
+    double x = ctx->frame_x + widget_coord_value(widget->x, widget->x_unit,
+                                                 ctx->frame_w);
+    double y = ctx->frame_y + widget_coord_value(widget->y, widget->y_unit,
+                                                 ctx->frame_h);
     unsigned i;
 
     if (!widget->items) {
