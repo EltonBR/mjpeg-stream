@@ -10,9 +10,10 @@ enum protocol {
 };
 
 struct config {
-    const char *device;
-    const char *host;
-    const char *port;
+    /* All string fields are owned by this config and released by destroy. */
+    char *device;
+    char *host;
+    char *port;
     enum protocol protocol;
     unsigned width;
     unsigned height;
@@ -23,6 +24,7 @@ struct config {
 
 void tx_usage(const char *argv0);
 int tx_parse_args(int argc, char **argv, struct config *cfg);
+void tx_config_destroy(struct config *cfg);
 const char *protocol_name(enum protocol protocol);
 
 #endif

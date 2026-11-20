@@ -27,18 +27,27 @@ struct rx_app {
     int fd;
     int listen_fd;
     int use_udp;
-    GByteArray *frame;
-    uint32_t udp_frame_id;
-    uint16_t udp_chunk_count;
-    uint16_t udp_received;
-    unsigned char *udp_seen;
+    GThread *receiver_thread;
+    gint receiver_stopping;
+    GMutex receiver_mutex;
+    int receiver_cancel[2];
+    int receiver_notify[2];
+    guint receiver_source;
+    gint receiver_done;
+    const char *receiver_host;
+    const char *receiver_port;
+    gint receiver_initial_failed;
+    GMutex frame_mutex;
+    unsigned char *pending_frame;
+    size_t pending_frame_len;
+    guint frame_source;
     struct event_sender events;
     struct overlay_state overlay;
     struct telemetry_client telemetry;
     const char *joystick_device;
     GThread *joystick_thread;
     int joystick_enabled;
-    volatile int stopping;
+    gint stopping;
 };
 
 void rx_app_init(struct rx_app *app, int use_udp, const char *joystick_device,

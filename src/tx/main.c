@@ -4,6 +4,7 @@
 #include "stream.h"
 
 #include <errno.h>
+#include <limits.h>
 #include <linux/videodev2.h>
 #include <signal.h>
 #include <stdio.h>
@@ -46,17 +47,18 @@ static int frame_to_jpeg(const struct config *cfg, const struct camera *camera,
                          unsigned char **jpeg, unsigned long *jpeg_len)
 {
     if (camera_uses_mjpeg(camera)) {
+        if (!mjpeg_frame_valid(frame->data, frame->bytesused)) {
+            fprintf(stderr, "frame MJPEG vazio ou invalido\n");
+            return -1;
+        }
         *jpeg = frame->data;
         *jpeg_len = (unsigned long)frame->bytesused;
         return 1;
     }
 
-    if (camera->pixfmt == V4L2_PIX_FMT_YUYV) {
-        yuyv_to_rgb(frame->data, rgb, cfg->width, cfg->height);
-    } else if (camera->pixfmt == V4L2_PIX_FMT_RGB24) {
-        memcpy(rgb, frame->data, (size_t)cfg->width * cfg->height * 3u);
-    } else {
-        fprintf(stderr, "formato V4L2 nao suportado\n");
+    if (frame_to_rgb(camera->pixfmt, frame->data, frame->bytesused,
+                     camera->bytesperline, cfg->width, cfg->height, rgb) < 0) {
+        fprintf(stderr, "frame RGB/YUYV invalido ou truncado\n");
         return -1;
     }
 
@@ -70,6 +72,7 @@ int main(int argc, char **argv)
     struct camera camera;
     struct stream_server stream;
     unsigned char *rgb = NULL;
+    size_t rgb_size;
     unsigned int frame_id = 1;
     int exit_code = 0;
 
@@ -77,6 +80,7 @@ int main(int argc, char **argv)
     (void)setlocale(LC_NUMERIC, "C");
 
     if (tx_parse_args(argc, argv, &cfg) < 0) {
+        tx_config_destroy(&cfg);
         tx_usage(argv[0]);
         return 2;
     }
@@ -86,14 +90,22 @@ int main(int argc, char **argv)
     signal(SIGPIPE, SIG_IGN);
 
     if (camera_open(&cfg, &camera) < 0) {
+        tx_config_destroy(&cfg);
         return 1;
     }
 
     if (!camera_uses_mjpeg(&camera)) {
-        rgb = malloc((size_t)cfg.width * cfg.height * 3u);
+        if (rgb_frame_size(cfg.width, cfg.height, &rgb_size) < 0) {
+            fprintf(stderr, "dimensoes RGB invalidas\n");
+            camera_close(&camera);
+            tx_config_destroy(&cfg);
+            return 1;
+        }
+        rgb = malloc(rgb_size);
         if (!rgb) {
             perror("malloc rgb");
             camera_close(&camera);
+            tx_config_destroy(&cfg);
             return 1;
         }
     }
@@ -101,6 +113,7 @@ int main(int argc, char **argv)
     if (stream_open(&stream, &cfg) < 0) {
         free(rgb);
         camera_close(&camera);
+        tx_config_destroy(&cfg);
         return 1;
     }
 
@@ -112,6 +125,7 @@ int main(int argc, char **argv)
         int jpeg_owned;
         int rc = wait_for_events(&camera, &stream, &fds);
 
+        stream_prune_stalled(&stream);
         if (rc <= 0) {
             continue;
         }
@@ -156,5 +170,6 @@ int main(int argc, char **argv)
     stream_close(&stream);
     camera_close(&camera);
     free(rgb);
+    tx_config_destroy(&cfg);
     return exit_code;
 }

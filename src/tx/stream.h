@@ -3,10 +3,18 @@
 
 #include "config.h"
 
+#include <time.h>
+
 #define MAX_STREAM_CLIENTS 32
+#define STREAM_MAX_PENDING_BYTES (32u * 1024u * 1024u)
+#define STREAM_PENDING_PROGRESS_TIMEOUT_SEC 30
 
 struct client {
     int fd;
+    unsigned char *pending;
+    size_t pending_len;
+    size_t pending_offset;
+    struct timespec pending_progress_at;
 };
 
 struct stream_server {
@@ -15,11 +23,13 @@ struct stream_server {
     const struct access_control *access;
     struct client clients[MAX_STREAM_CLIENTS];
     int client_count;
+    size_t pending_bytes;
 };
 
 int stream_open(struct stream_server *server, const struct config *cfg);
 int stream_wait_fd(const struct stream_server *server);
 void stream_accept_pending(struct stream_server *server);
+void stream_prune_stalled(struct stream_server *server);
 int stream_send_frame(struct stream_server *server, const unsigned char *jpeg,
                       unsigned long jpeg_len, unsigned int *frame_id);
 void stream_close(struct stream_server *server);

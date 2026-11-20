@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -21,84 +22,153 @@ static int set_nonblocking(int fd)
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
-static int send_all_nosigpipe(int fd, const void *buf, size_t len)
+static void client_mark_progress(struct client *client)
 {
-    const unsigned char *p = buf;
-    while (len > 0) {
-        ssize_t n = send(fd, p, len, MSG_NOSIGNAL);
-        if (n < 0) {
-            if (errno == EINTR) {
-                continue;
-            }
-            return -1;
-        }
-        if (n == 0) {
-            return -1;
-        }
-        p += (size_t)n;
-        len -= (size_t)n;
+    (void)clock_gettime(CLOCK_MONOTONIC, &client->pending_progress_at);
+}
+
+static int client_progress_expired(const struct client *client)
+{
+    struct timespec now;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &now) < 0 ||
+        now.tv_sec < client->pending_progress_at.tv_sec) {
+        return 0;
+    }
+    if (now.tv_sec - client->pending_progress_at.tv_sec >
+        STREAM_PENDING_PROGRESS_TIMEOUT_SEC) {
+        return 1;
+    }
+    return now.tv_sec - client->pending_progress_at.tv_sec ==
+               STREAM_PENDING_PROGRESS_TIMEOUT_SEC &&
+           now.tv_nsec >= client->pending_progress_at.tv_nsec;
+}
+
+static const char http_stream_header[] =
+    "HTTP/1.0 200 OK\r\n"
+    "Server: mjpeg_tx\r\n"
+    "Cache-Control: no-cache, no-store, must-revalidate\r\n"
+    "Pragma: no-cache\r\n"
+    "Expires: 0\r\n"
+    "Connection: close\r\n"
+    "Content-Type: multipart/x-mixed-replace; boundary=mjpegframe\r\n"
+    "\r\n";
+
+static int client_queue_owned(struct stream_server *server,
+                              struct client *client,
+                              unsigned char *data, size_t len)
+{
+    if (server->pending_bytes > STREAM_MAX_PENDING_BYTES ||
+        len > STREAM_MAX_PENDING_BYTES - server->pending_bytes) {
+        return -1;
+    }
+    client->pending = data;
+    client->pending_len = len;
+    client->pending_offset = 0;
+    client_mark_progress(client);
+    server->pending_bytes += len;
+    return 0;
+}
+
+static int client_queue(struct stream_server *server, struct client *client,
+                        const void *data, size_t len)
+{
+    unsigned char *copy = malloc(len);
+    if (!copy) {
+        return -1;
+    }
+    memcpy(copy, data, len);
+    if (client_queue_owned(server, client, copy, len) < 0) {
+        free(copy);
+        return -1;
     }
     return 0;
 }
 
-static int send_tcp_frame_to_client(int fd, const unsigned char *jpeg,
-                                    unsigned long len)
+/* Returns 0 when drained, 1 when temporarily blocked, and -1 on fatal error. */
+static int client_flush(struct client *client)
 {
-    uint32_t nlen;
-    if (len > MJPEG_MAX_FRAME) {
-        return -1;
-    }
-    nlen = htonl((uint32_t)len);
-    if (send_all_nosigpipe(fd, &nlen, sizeof(nlen)) < 0 ||
-        send_all_nosigpipe(fd, jpeg, (size_t)len) < 0) {
+    while (client->pending && client->pending_offset < client->pending_len) {
+        ssize_t n = send(client->fd, client->pending + client->pending_offset,
+                         client->pending_len - client->pending_offset,
+                         MSG_NOSIGNAL);
+        if (n > 0) {
+            client->pending_offset += (size_t)n;
+            client_mark_progress(client);
+            continue;
+        }
+        if (n < 0 && errno == EINTR) {
+            continue;
+        }
+        if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            return 1;
+        }
         return -1;
     }
     return 0;
 }
 
-static int send_http_stream_header(int fd)
+static void client_clear_pending(struct stream_server *server,
+                                 struct client *client)
 {
-    static const char header[] =
-        "HTTP/1.0 200 OK\r\n"
-        "Server: mjpeg_tx\r\n"
-        "Cache-Control: no-cache, no-store, must-revalidate\r\n"
-        "Pragma: no-cache\r\n"
-        "Expires: 0\r\n"
-        "Connection: close\r\n"
-        "Content-Type: multipart/x-mixed-replace; boundary=mjpegframe\r\n"
-        "\r\n";
-    return send_all_nosigpipe(fd, header, sizeof(header) - 1u);
+    if (client->pending) {
+        server->pending_bytes -= client->pending_len;
+        free(client->pending);
+        client->pending = NULL;
+        client->pending_len = 0;
+        client->pending_offset = 0;
+        client->pending_progress_at.tv_sec = 0;
+        client->pending_progress_at.tv_nsec = 0;
+    }
 }
 
-static int send_http_frame_to_client(int fd, const unsigned char *jpeg,
-                                     unsigned long len)
+static int serialize_frame(enum protocol protocol, const unsigned char *jpeg,
+                           unsigned long len, unsigned char **out,
+                           size_t *out_len)
 {
-    char header[160];
-    int header_len;
+    size_t prefix_len;
+    size_t suffix_len = protocol == PROTO_HTTP ? 2u : 0u;
+    char http_prefix[160];
+    uint32_t tcp_len;
+    unsigned char *buffer;
+
     if (len > MJPEG_MAX_FRAME) {
         return -1;
     }
-
-    header_len = snprintf(header, sizeof(header),
-                          "--mjpegframe\r\n"
-                          "Content-Type: image/jpeg\r\n"
-                          "Content-Length: %lu\r\n"
-                          "\r\n",
-                          len);
-    if (header_len < 0 || (size_t)header_len >= sizeof(header)) {
+    if (protocol == PROTO_HTTP) {
+        int n = snprintf(http_prefix, sizeof(http_prefix),
+                         "--mjpegframe\r\n"
+                         "Content-Type: image/jpeg\r\n"
+                         "Content-Length: %lu\r\n\r\n", len);
+        if (n < 0 || (size_t)n >= sizeof(http_prefix)) {
+            return -1;
+        }
+        prefix_len = (size_t)n;
+    } else {
+        prefix_len = sizeof(tcp_len);
+    }
+    *out_len = prefix_len + (size_t)len + suffix_len;
+    buffer = malloc(*out_len);
+    if (!buffer) {
         return -1;
     }
-
-    if (send_all_nosigpipe(fd, header, (size_t)header_len) < 0 ||
-        send_all_nosigpipe(fd, jpeg, (size_t)len) < 0 ||
-        send_all_nosigpipe(fd, "\r\n", 2) < 0) {
-        return -1;
+    if (protocol == PROTO_HTTP) {
+        memcpy(buffer, http_prefix, prefix_len);
+    } else {
+        tcp_len = htonl((uint32_t)len);
+        memcpy(buffer, &tcp_len, sizeof(tcp_len));
     }
+    memcpy(buffer + prefix_len, jpeg, (size_t)len);
+    if (suffix_len) {
+        memcpy(buffer + prefix_len + (size_t)len, "\r\n", suffix_len);
+    }
+    *out = buffer;
     return 0;
 }
 
 static void remove_client(struct stream_server *server, int index)
 {
+    client_clear_pending(server, &server->clients[index]);
     close(server->clients[index].fd);
     if (index + 1 < server->client_count) {
         memmove(&server->clients[index], &server->clients[index + 1],
@@ -221,17 +291,43 @@ void stream_accept_pending(struct stream_server *server)
             continue;
         }
 
-        if (server->protocol == PROTO_HTTP &&
-            send_http_stream_header(fd) < 0) {
+        /* Accepted sockets must never block frame capture. */
+        if (set_nonblocking(fd) < 0) {
             close(fd);
             continue;
         }
 
         server->clients[server->client_count].fd = fd;
+        server->clients[server->client_count].pending = NULL;
+        server->clients[server->client_count].pending_len = 0;
+        server->clients[server->client_count].pending_offset = 0;
+        if (server->protocol == PROTO_HTTP &&
+            client_queue(server, &server->clients[server->client_count],
+                         http_stream_header, sizeof(http_stream_header) - 1u) < 0) {
+            close(fd);
+            continue;
+        }
         server->client_count++;
         fprintf(stderr, "cliente %s conectado (%d/%d)\n",
                 protocol_name(server->protocol), server->client_count,
                 MAX_STREAM_CLIENTS);
+    }
+}
+
+void stream_prune_stalled(struct stream_server *server)
+{
+    int i = 0;
+
+    while (i < server->client_count) {
+        struct client *client = &server->clients[i];
+
+        if (client->pending && client_progress_expired(client)) {
+            fprintf(stderr, "cliente %s sem progresso; desconectado\n",
+                    protocol_name(server->protocol));
+            remove_client(server, i);
+            continue;
+        }
+        i++;
     }
 }
 
@@ -244,17 +340,52 @@ int stream_send_frame(struct stream_server *server, const unsigned char *jpeg,
         return send_udp_frame(server->fd, jpeg, jpeg_len, (*frame_id)++);
     }
 
+    stream_prune_stalled(server);
     while (i < server->client_count) {
-        int rc = server->protocol == PROTO_HTTP
-                     ? send_http_frame_to_client(server->clients[i].fd,
-                                                 jpeg, jpeg_len)
-                     : send_tcp_frame_to_client(server->clients[i].fd,
-                                                jpeg, jpeg_len);
+        struct client *client = &server->clients[i];
+        if (jpeg_len > MJPEG_MAX_FRAME) {
+            remove_client(server, i);
+            continue;
+        }
+        int had_pending = client->pending != NULL;
+        int rc = client_flush(client);
         if (rc < 0) {
             fprintf(stderr, "cliente %s desconectado\n",
                     protocol_name(server->protocol));
             remove_client(server, i);
         } else {
+            if (had_pending && rc == 0) {
+                client_clear_pending(server, client);
+            }
+            if (!had_pending && rc == 0) {
+                unsigned char *serialized = NULL;
+                size_t serialized_len;
+                size_t max_overhead = server->protocol == PROTO_HTTP ? 162u : 4u;
+                if (server->pending_bytes > STREAM_MAX_PENDING_BYTES ||
+                    (size_t)jpeg_len + max_overhead >
+                        STREAM_MAX_PENDING_BYTES - server->pending_bytes) {
+                    i++;
+                    continue;
+                }
+                if (serialize_frame(server->protocol, jpeg, jpeg_len,
+                                    &serialized, &serialized_len) < 0 ||
+                    client_queue_owned(server, client, serialized,
+                                       serialized_len) < 0) {
+                    free(serialized);
+                    /* Queue pressure drops this frame and leaves the client alive. */
+                } else {
+                    rc = client_flush(client);
+                    if (rc < 0) {
+                        fprintf(stderr, "cliente %s desconectado\n",
+                                protocol_name(server->protocol));
+                        remove_client(server, i);
+                        continue;
+                    }
+                    if (rc == 0) {
+                        client_clear_pending(server, client);
+                    }
+                }
+            }
             i++;
         }
     }

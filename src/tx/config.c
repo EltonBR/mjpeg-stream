@@ -7,17 +7,46 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void tx_defaults(struct config *cfg)
+static int replace_string(char **target, const char *value)
 {
-    cfg->device = "/dev/video0";
-    cfg->host = "0.0.0.0";
-    cfg->port = "5000";
+    char *copy = strdup(value);
+    if (!copy) {
+        return -1;
+    }
+    free(*target);
+    *target = copy;
+    return 0;
+}
+
+void tx_config_destroy(struct config *cfg)
+{
+    if (!cfg) {
+        return;
+    }
+    free(cfg->device);
+    free(cfg->host);
+    free(cfg->port);
+    cfg->device = NULL;
+    cfg->host = NULL;
+    cfg->port = NULL;
+}
+
+static int tx_defaults(struct config *cfg)
+{
+    memset(cfg, 0, sizeof(*cfg));
     cfg->protocol = PROTO_TCP;
     cfg->width = 640;
     cfg->height = 480;
     cfg->fps = 30;
     cfg->quality = 80;
     access_control_init(&cfg->access);
+    if (replace_string(&cfg->device, "/dev/video0") < 0 ||
+        replace_string(&cfg->host, "0.0.0.0") < 0 ||
+        replace_string(&cfg->port, "5000") < 0) {
+        tx_config_destroy(cfg);
+        return -1;
+    }
+    return 0;
 }
 
 static int set_protocol(struct config *cfg, const char *value)
@@ -41,11 +70,11 @@ static int tx_ini_handler(void *user, const char *section,
     (void)section;
 
     if (strcmp(key, "device") == 0) {
-        cfg->device = strdup(value);
+        return replace_string(&cfg->device, value);
     } else if (strcmp(key, "host") == 0 || strcmp(key, "listen_host") == 0) {
-        cfg->host = strdup(value);
+        return replace_string(&cfg->host, value);
     } else if (strcmp(key, "port") == 0) {
-        cfg->port = strdup(value);
+        return replace_string(&cfg->port, value);
     } else if (strcmp(key, "protocol") == 0) {
         return set_protocol(cfg, value);
     } else if (strcmp(key, "width") == 0) {
@@ -79,7 +108,9 @@ int tx_parse_args(int argc, char **argv, struct config *cfg)
     const char *config_path = "tx.ini";
     int config_explicit = 0;
 
-    tx_defaults(cfg);
+    if (tx_defaults(cfg) < 0) {
+        return -1;
+    }
 
     for (i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--config") == 0 && i + 1 < argc) {
@@ -90,10 +121,12 @@ int tx_parse_args(int argc, char **argv, struct config *cfg)
 
     if (access(config_path, R_OK) == 0) {
         if (ini_parse_file(config_path, tx_ini_handler, cfg) < 0) {
+            tx_config_destroy(cfg);
             return -1;
         }
     } else if (config_explicit) {
         perror(config_path);
+        tx_config_destroy(cfg);
         return -1;
     }
 
@@ -101,11 +134,20 @@ int tx_parse_args(int argc, char **argv, struct config *cfg)
         if (strcmp(argv[i], "--config") == 0 && i + 1 < argc) {
             i++;
         } else if (strcmp(argv[i], "--device") == 0 && i + 1 < argc) {
-            cfg->device = argv[++i];
+            if (replace_string(&cfg->device, argv[++i]) < 0) {
+                tx_config_destroy(cfg);
+                return -1;
+            }
         } else if (strcmp(argv[i], "--host") == 0 && i + 1 < argc) {
-            cfg->host = argv[++i];
+            if (replace_string(&cfg->host, argv[++i]) < 0) {
+                tx_config_destroy(cfg);
+                return -1;
+            }
         } else if (strcmp(argv[i], "--port") == 0 && i + 1 < argc) {
-            cfg->port = argv[++i];
+            if (replace_string(&cfg->port, argv[++i]) < 0) {
+                tx_config_destroy(cfg);
+                return -1;
+            }
         } else if (strcmp(argv[i], "--width") == 0 && i + 1 < argc) {
             cfg->width = (unsigned)atoi(argv[++i]);
         } else if (strcmp(argv[i], "--height") == 0 && i + 1 < argc) {
@@ -122,15 +164,18 @@ int tx_parse_args(int argc, char **argv, struct config *cfg)
             (void)set_protocol(cfg, "http");
         } else if (strcmp(argv[i], "--allow") == 0 && i + 1 < argc) {
             if (access_control_add(&cfg->access, argv[++i]) < 0) {
+                tx_config_destroy(cfg);
                 return -1;
             }
         } else {
+            tx_config_destroy(cfg);
             return -1;
         }
     }
 
     if (cfg->width == 0 || cfg->height == 0 || cfg->fps == 0 ||
         cfg->quality < 1 || cfg->quality > 100) {
+        tx_config_destroy(cfg);
         return -1;
     }
     return 0;

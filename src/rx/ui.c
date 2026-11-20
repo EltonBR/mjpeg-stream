@@ -110,10 +110,26 @@ static void on_zoom_out(GtkButton *button, gpointer data)
 
 static gboolean show_frame(gpointer data)
 {
-    struct frame_msg *msg = data;
+    struct rx_app *app = data;
+    struct frame_msg *msg = malloc(sizeof(*msg));
     GdkPixbufLoader *loader;
     GdkPixbuf *pixbuf;
     GError *err = NULL;
+
+    g_mutex_lock(&app->frame_mutex);
+    if (!msg) {
+        free(app->pending_frame);
+        app->pending_frame = NULL;
+        app->frame_source = 0;
+        g_mutex_unlock(&app->frame_mutex);
+        return G_SOURCE_REMOVE;
+    }
+    msg->app = app;
+    msg->data = app->pending_frame;
+    msg->len = app->pending_frame_len;
+    app->pending_frame = NULL;
+    app->frame_source = 0;
+    g_mutex_unlock(&app->frame_mutex);
 
     loader = gdk_pixbuf_loader_new_with_type("jpeg", &err);
     if (!loader) {
@@ -214,33 +230,34 @@ void rx_queue_redraw(struct rx_app *app)
 
 void rx_queue_frame(struct rx_app *app, const unsigned char *data, size_t len)
 {
-    struct frame_msg *msg = malloc(sizeof(*msg));
-    if (!msg) {
-        return;
+    unsigned char *copy = malloc(len);
+    if (!copy) return;
+    memcpy(copy, data, len);
+    g_mutex_lock(&app->frame_mutex);
+    free(app->pending_frame);
+    app->pending_frame = copy;
+    app->pending_frame_len = len;
+    if (!app->frame_source)
+        app->frame_source = g_idle_add(show_frame, app);
+    g_mutex_unlock(&app->frame_mutex);
+}
+
+void rx_clear_pending_frame(struct rx_app *app)
+{
+    g_mutex_lock(&app->frame_mutex);
+    if (app->frame_source) {
+        g_source_remove(app->frame_source);
+        app->frame_source = 0;
     }
-    msg->app = app;
-    msg->data = malloc(len);
-    if (!msg->data) {
-        free(msg);
-        return;
-    }
-    memcpy(msg->data, data, len);
-    msg->len = len;
-    g_idle_add(show_frame, msg);
+    free(app->pending_frame);
+    app->pending_frame = NULL;
+    g_mutex_unlock(&app->frame_mutex);
 }
 
 static void on_destroy(GtkWidget *widget, gpointer data)
 {
-    struct rx_app *app = data;
     (void)widget;
-    if (app->fd >= 0) {
-        close(app->fd);
-        app->fd = -1;
-    }
-    if (app->listen_fd >= 0) {
-        close(app->listen_fd);
-        app->listen_fd = -1;
-    }
+    (void)data;
     gtk_main_quit();
 }
 

@@ -1,4 +1,6 @@
 #include "app.h"
+#include "receiver.h"
+#include "ui.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -13,9 +15,12 @@ void rx_app_init(struct rx_app *app, int use_udp, const char *joystick_device,
 {
     memset(app, 0, sizeof(*app));
     app->fd = -1;
+    app->receiver_cancel[0] = app->receiver_cancel[1] = -1;
+    app->receiver_notify[0] = app->receiver_notify[1] = -1;
+    g_mutex_init(&app->frame_mutex);
+    g_mutex_init(&app->receiver_mutex);
     app->listen_fd = -1;
     app->use_udp = use_udp;
-    app->frame = g_byte_array_new();
     app->zoom = 1.0;
     app->zoom_in_key = zoom_in_key;
     app->zoom_out_key = zoom_out_key;
@@ -32,12 +37,14 @@ void rx_app_init(struct rx_app *app, int use_udp, const char *joystick_device,
 
 void rx_app_cleanup(struct rx_app *app)
 {
+    rx_stop_receiver(app);
+    rx_clear_pending_frame(app);
     /* PONTO CRÍTICO: Cleanup de Joystick
      * ORDEM IMPORTA para evitar deadlock:
      * 1. Sinaliza thread parar (app->stopping = 1)
      * 2. Aguarda término com g_thread_join()
      * Nunca inverter a ordem! */
-    app->stopping = 1;
+    g_atomic_int_set(&app->stopping, 1);
     
     if (app->joystick_thread) {
         fprintf(stderr, "Encerrando thread de joystick...");
@@ -58,16 +65,9 @@ void rx_app_cleanup(struct rx_app *app)
     event_sender_close(&app->events);
     overlay_cleanup(&app->overlay);
 
-    free(app->udp_seen);
-    app->udp_seen = NULL;
-
     if (app->last_pixbuf) {
         g_object_unref(app->last_pixbuf);
         app->last_pixbuf = NULL;
-    }
-    if (app->frame) {
-        g_byte_array_unref(app->frame);
-        app->frame = NULL;
     }
     if (app->fd >= 0) {
         close(app->fd);
@@ -77,4 +77,6 @@ void rx_app_cleanup(struct rx_app *app)
         close(app->listen_fd);
         app->listen_fd = -1;
     }
+    g_mutex_clear(&app->receiver_mutex);
+    g_mutex_clear(&app->frame_mutex);
 }

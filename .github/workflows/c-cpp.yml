@@ -17,3 +17,5 @@ jobs:
       run: ./install-deps.sh
     - name: make
       run: make
+    - name: test
+      run: make test

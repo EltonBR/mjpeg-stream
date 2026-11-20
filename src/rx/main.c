@@ -23,6 +23,7 @@ int main(int argc, char **argv)
     gtk_disable_setlocale();
 
     if (rx_parse_args(argc, argv, &cfg) < 0) {
+        rx_config_destroy(&cfg);
         rx_usage(argv[0]);
         return 2;
     }
@@ -35,14 +36,17 @@ int main(int argc, char **argv)
 
     if (overlay_set_hud_color(&app.overlay, cfg.hud_color) < 0) {
         rx_app_cleanup(&app);
+        rx_config_destroy(&cfg);
         return 1;
     }
     if (overlay_set_hud_font(&app.overlay, cfg.hud_font) < 0) {
         rx_app_cleanup(&app);
+        rx_config_destroy(&cfg);
         return 1;
     }
     if (overlay_set_dim(&app.overlay, cfg.dim_color, cfg.dim_alpha) < 0) {
         rx_app_cleanup(&app);
+        rx_config_destroy(&cfg);
         return 1;
     }
 
@@ -50,18 +54,21 @@ int main(int argc, char **argv)
         if (access(cfg.overlay_path, R_OK) == 0) {
             if (overlay_load_file(&app.overlay, cfg.overlay_path) < 0) {
                 rx_app_cleanup(&app);
+                rx_config_destroy(&cfg);
                 return 1;
             }
         } else if (cfg.overlay_required) {
             fprintf(stderr, "overlay: arquivo nao encontrado: %s\n",
                     cfg.overlay_path);
             rx_app_cleanup(&app);
+            rx_config_destroy(&cfg);
             return 1;
         }
     }
 
     if (rx_connect(&app, &cfg) < 0) {
         rx_app_cleanup(&app);
+        rx_config_destroy(&cfg);
         return 1;
     }
 
@@ -78,10 +85,18 @@ int main(int argc, char **argv)
         rx_input_start_joystick(&app);
     }
     gtk_widget_show_all(window);
-    rx_start_receiver(&app);
+    if (rx_start_receiver(&app) < 0) {
+        rx_app_cleanup(&app);
+        rx_config_destroy(&cfg);
+        return 1;
+    }
 
     gtk_main();
 
-    rx_app_cleanup(&app);
-    return 0;
+    {
+        int result = g_atomic_int_get(&app.receiver_initial_failed) ? 1 : 0;
+        rx_app_cleanup(&app);
+        rx_config_destroy(&cfg);
+        return result;
+    }
 }

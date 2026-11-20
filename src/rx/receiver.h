@@ -5,6 +5,7 @@
 #include "config.h"
 
 int rx_connect(struct rx_app *app, const struct rx_config *cfg);
-void rx_start_receiver(struct rx_app *app);
+int rx_start_receiver(struct rx_app *app);
+void rx_stop_receiver(struct rx_app *app);
 
 #endif

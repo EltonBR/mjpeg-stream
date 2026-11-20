@@ -5,6 +5,8 @@
 
 #include <gtk/gtk.h>
 
+struct telemetry_redraw_state;
+
 struct telemetry_client {
     int enabled;
     int stopping;
@@ -14,6 +16,10 @@ struct telemetry_client {
     GThread *thread;
     struct overlay_state *overlay;
     GtkWidget *drawing_area;
+    GMutex mutex;
+    GCond condition;
+    gboolean synchronization_initialized;
+    struct telemetry_redraw_state *redraw;
 };
 
 void telemetry_init(struct telemetry_client *client);

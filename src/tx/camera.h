@@ -16,6 +16,7 @@ struct camera {
     struct tx_buffer *buffers;
     unsigned buffer_count;
     uint32_t pixfmt;
+    size_t bytesperline;
 };
 
 struct camera_frame {

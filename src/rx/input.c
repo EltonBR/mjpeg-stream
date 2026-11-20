@@ -300,7 +300,7 @@ static gpointer joystick_thread(gpointer data)
      * A thread verifica app->stopping regularmente
      * O cleanup seta app->stopping=1 ANTES de chamar g_thread_join()
      * Isso evita deadlock */
-    while (!app->stopping) {
+    while (!g_atomic_int_get(&app->stopping)) {
         struct js_event event;
         ssize_t n = read(fd, &event, sizeof(event));
         if (n == (ssize_t)sizeof(event)) {

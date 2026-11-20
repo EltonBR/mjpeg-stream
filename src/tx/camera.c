@@ -80,6 +80,19 @@ int camera_open(struct config *cfg, struct camera *camera)
 
     cfg->width = fmt.fmt.pix.width;
     cfg->height = fmt.fmt.pix.height;
+    if (cfg->width == 0 || cfg->height == 0 ||
+        (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_YUYV &&
+         (cfg->width & 1u) != 0)) {
+        fprintf(stderr, "camera retornou dimensoes invalidas\n");
+        close(fd);
+        return -1;
+    }
+    if (cfg->width > 65500u || cfg->height > 65500u ||
+        (size_t)cfg->width > SIZE_MAX / 3u / (size_t)cfg->height) {
+        fprintf(stderr, "camera retornou dimensoes grandes demais\n");
+        close(fd);
+        return -1;
+    }
 
     memset(&parm, 0, sizeof(parm));
     parm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -111,37 +124,26 @@ int camera_open(struct config *cfg, struct camera *camera)
         buf.index = i;
         if (xioctl(fd, VIDIOC_QUERYBUF, &buf) < 0) {
             perror("VIDIOC_QUERYBUF");
-            close(fd);
-            free(camera->buffers);
-            camera->buffers = NULL;
-            return -1;
+            goto fail_buffers;
         }
         camera->buffers[i].length = buf.length;
         camera->buffers[i].start = mmap(NULL, buf.length, PROT_READ | PROT_WRITE,
                                         MAP_SHARED, fd, buf.m.offset);
         if (camera->buffers[i].start == MAP_FAILED) {
             perror("mmap");
-            close(fd);
-            free(camera->buffers);
-            camera->buffers = NULL;
-            return -1;
+            goto fail_buffers;
         }
+        camera->buffer_count++;
         if (xioctl(fd, VIDIOC_QBUF, &buf) < 0) {
             perror("VIDIOC_QBUF");
-            close(fd);
-            free(camera->buffers);
-            camera->buffers = NULL;
-            return -1;
+            goto fail_buffers;
         }
     }
 
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     if (xioctl(fd, VIDIOC_STREAMON, &type) < 0) {
         perror("VIDIOC_STREAMON");
-        close(fd);
-        free(camera->buffers);
-        camera->buffers = NULL;
-        return -1;
+        goto fail_buffers;
     }
 
     fprintf(stderr, "camera: %ux%u formato %.4s\n",
@@ -151,7 +153,18 @@ int camera_open(struct config *cfg, struct camera *camera)
     camera->fd = fd;
     camera->buffer_count = req.count;
     camera->pixfmt = fmt.fmt.pix.pixelformat;
+    camera->bytesperline = fmt.fmt.pix.bytesperline;
     return 0;
+
+fail_buffers:
+    while (camera->buffer_count > 0) {
+        unsigned index = --camera->buffer_count;
+        munmap(camera->buffers[index].start, camera->buffers[index].length);
+    }
+    free(camera->buffers);
+    camera->buffers = NULL;
+    close(fd);
+    return -1;
 }
 
 int camera_next_frame(struct camera *camera, struct camera_frame *frame)
@@ -166,6 +179,12 @@ int camera_next_frame(struct camera *camera, struct camera_frame *frame)
             return 0;
         }
         perror("VIDIOC_DQBUF");
+        return -1;
+    }
+
+    if (buf.index >= camera->buffer_count ||
+        buf.bytesused > camera->buffers[buf.index].length) {
+        fprintf(stderr, "camera: buffer V4L2 invalido\n");
         return -1;
     }
 
