@@ -82,6 +82,21 @@ static void draw_value_label(struct overlay_widget *widget, cairo_t *cr,
                      widget->alpha, WIDGET_ANCHOR_CENTER);
 }
 
+/* Use the selected font's line height to keep the value clear of both the
+ * end tick labels and the triangular marker at any configured font size. */
+static double ruler_text_height(const struct overlay_widget *widget, cairo_t *cr,
+                                const struct overlay_render_context *ctx)
+{
+    cairo_font_extents_t extents;
+    cairo_save(cr);
+    cairo_select_font_face(cr, ctx->hud_font ? ctx->hud_font : "Monospace",
+                           CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, widget->size > 0.0 ? widget->size : 13.0);
+    cairo_font_extents(cr, &extents);
+    cairo_restore(cr);
+    return extents.height;
+}
+
 void vertical_ruler_widget_draw(struct overlay_widget *widget, cairo_t *cr,
                                 const struct overlay_render_context *ctx)
 {
@@ -166,7 +181,11 @@ void vertical_ruler_widget_draw(struct overlay_widget *widget, cairo_t *cr,
     cairo_close_path(cr);
     cairo_stroke(cr);
 
-    draw_value_label(widget, cr, ctx, raw_value, left + w / 2.0, top + h + 18.0);
+    {
+        double text_height = ruler_text_height(widget, cr, ctx);
+        draw_value_label(widget, cr, ctx, raw_value, left + w / 2.0,
+                         top + h + 5.0 + text_height * 1.5 + 4.0);
+    }
     cairo_restore(cr);
 }
 
@@ -251,7 +270,10 @@ void horizontal_ruler_widget_draw(struct overlay_widget *widget, cairo_t *cr,
     cairo_close_path(cr);
     cairo_stroke(cr);
 
-    draw_value_label(widget, cr, ctx, raw_value, left + w / 2.0,
-                     axis_y + (widget->flip_vertical ? h * 0.26 : -h * 0.26));
+    {
+        double offset = h * 0.18 + 4.0 + ruler_text_height(widget, cr, ctx) / 2.0;
+        draw_value_label(widget, cr, ctx, raw_value, left + w / 2.0,
+                         axis_y + (widget->flip_vertical ? offset : -offset));
+    }
     cairo_restore(cr);
 }
