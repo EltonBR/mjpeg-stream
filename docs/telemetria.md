@@ -1,6 +1,6 @@
 # Telemetria JSON Lines
 
-O receptor pode abrir um cliente TCP de telemetria. Cada linha recebida deve ser um JSON.
+O receptor pode abrir um cliente TCP de telemetria. Cada linha recebida deve ser um JSON. Para especificação completa dos dois canais e servidores de exemplo, consulte [API de telemetria, comandos e eventos do RX](api-telemetria-eventos-rx.md).
 
 ## Ativar no receptor
 
@@ -30,7 +30,7 @@ Variaveis comuns:
 - `time`
 - `rotate`
 
-`angle` e `azimuth` aceitam float com ate duas casas decimais.
+`angle` e `azimuth` aceitam numeros JSON; a exibicao depende do widget.
 
 ## Mensagem `set`
 
@@ -38,7 +38,7 @@ Altera campos simples de elemento/widget por `id`.
 
 ```json
 {"type":"set","id":"crosshair","visible":false}
-{"type":"set","id":"crosshair","rotation":245}
+{"type":"set","id":"crosshair","rotation":"245"}
 ```
 
 ## Mensagem `upsert`
@@ -67,3 +67,5 @@ Remove elemento basico por `id`.
 ```
 
 Ele envia `telemetry` em loop com data, hora, angulo, azimuth, heading, bateria e rotacao. O mesmo processo tambem abre um servidor TCP de eventos JSON Lines e imprime no console os eventos enviados pelo `mjpeg_rx`.
+
+A configuração independente fica em `overlay.ini`, seção `[telemetry]`. `reconnect_ms` controla o intervalo de reconexão. Mudanças de endpoint requerem reiniciar o RX. Um `set` pode ajustar propriedades comuns de widgets modernos pelo seu ID; os comandos legados continuam aceitos.
