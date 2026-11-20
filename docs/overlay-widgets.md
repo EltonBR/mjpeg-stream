@@ -324,3 +324,7 @@ O formato antigo `elements` ainda funciona para:
 - `line`
 
 O formato recomendado agora e `widgets`.
+
+## Unidades de posição
+
+Widgets aceitam `x_unit`, `y_unit`, `w_unit` e `h_unit` com valores `relative` ou `px`. Quando ausente, permanece a regra legada: valores entre 0 e 1 são relativos à área visível e os demais são pixels. `schema_version: 2` pode acompanhar documentos com unidades explícitas. Widgets e elementos legados compartilham a ordem por `z_index`.

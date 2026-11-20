@@ -79,3 +79,5 @@ Eventos de pressionamento usam pares `down/up` e um evento `press` no release: t
 ## Controle de Dim
 
 A toolbar do receptor tem um slider `Dim` para ajustar `dim_alpha` em runtime. O valor inicial vem do `rx.ini`; ajustes pela UI nao alteram o arquivo. `dim_alpha_step` define o passo usado apenas quando atalhos de alpha estiverem configurados.
+
+O RX aceita `--overlay-config arquivo.ini`. Sem essa opção, procura `overlay.ini` ao lado do arquivo indicado por `--config`; na ausência do arquivo padrão, aceita os campos legados de overlay e telemetria em `rx.ini`. Opções CLI têm precedência. O layout monitorado é recarregado sem reiniciar o vídeo; configuração de telemetria exige reinício.
