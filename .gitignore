@@ -15,6 +15,7 @@ mjpeg_rx
 v4l2_discover
 asset_colorize
 /overlay-designer
+/dist/
 
 # Debug/profiling artifacts
 *.gcda
