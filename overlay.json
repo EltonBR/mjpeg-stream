@@ -10,7 +10,16 @@
       "w": 0.46,
       "h": 54,
       "azimuth": "{azimuth}",
-      "labels": ["N", "NE", "L", "SE", "S", "SO", "O", "NO"],
+      "labels": [
+        "N",
+        "NE",
+        "L",
+        "SE",
+        "S",
+        "SO",
+        "O",
+        "NO"
+      ],
       "size": 14,
       "alpha": 0.95,
       "z_index": 40,
@@ -37,7 +46,7 @@
       "y": 0.5,
       "anchor": "center",
       "w": 50,
-      "h": 0.50,
+      "h": 0.5,
       "value": "{angle}",
       "min": -90,
       "max": 90,
@@ -46,7 +55,7 @@
       "minor_step": 1,
       "flip_horizontal": false,
       "label": "ANG ",
-      "suffix": "\u00b0",
+      "suffix": "°",
       "size": 13,
       "alpha": 1,
       "z_index": 35,
@@ -59,7 +68,7 @@
       "y": 0.5,
       "anchor": "center",
       "w": 50,
-      "h": 0.50,
+      "h": 0.5,
       "value": "{angle}",
       "min": -90,
       "max": 90,
@@ -68,7 +77,7 @@
       "minor_step": 1,
       "flip_horizontal": true,
       "label": "ANG ",
-      "suffix": "\u00b0",
+      "suffix": "°",
       "size": 13,
       "alpha": 1,
       "z_index": 35,
@@ -78,7 +87,7 @@
       "id": "angle_horizontal_ruler",
       "type": "horizontal_ruler",
       "x": 0.5,
-      "y": 0.88,
+      "y": 0.8703703703703703,
       "anchor": "center",
       "w": 0.46,
       "h": 70,
@@ -91,7 +100,7 @@
       "flip_horizontal": false,
       "flip_vertical": false,
       "label": "ANG ",
-      "suffix": "\u00b0",
+      "suffix": "°",
       "size": 13,
       "alpha": 0.9,
       "z_index": 35,
@@ -104,15 +113,30 @@
       "y": 24,
       "anchor": "top-left",
       "size": 18,
-      "alpha": 1.0,
+      "alpha": 1,
       "z_index": 30,
       "visible": true,
       "items": [
-        {"label": "ANG: ", "value": "{angle}"},
-        {"label": "AZ: ", "value": "{azimuth}"},
-        {"label": "HDG: ", "value": "{heading}"},
-        {"label": "BAT: ", "value": "{battery}V"},
-        {"label": "ROT: ", "value": "{rotate}"}
+        {
+          "label": "ANG: ",
+          "value": "{angle}"
+        },
+        {
+          "label": "AZ: ",
+          "value": "{azimuth}"
+        },
+        {
+          "label": "HDG: ",
+          "value": "{heading}"
+        },
+        {
+          "label": "BAT: ",
+          "value": "{battery}V"
+        },
+        {
+          "label": "ROT: ",
+          "value": "{rotate}"
+        }
       ]
     },
     {
