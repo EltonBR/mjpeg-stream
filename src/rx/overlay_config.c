@@ -206,7 +206,7 @@ void overlay_config_destroy(struct overlay_config *cfg)
 int overlay_config_parse_args(int argc, char **argv,
                               struct overlay_config *cfg)
 {
-    const char *rx_path = "rx.ini";
+    const char *rx_path = "config/rx.ini";
     const char *overlay_path_cli = NULL;
     char *rx_abs = NULL, *base = NULL, *overlay_path = NULL, *resolved = NULL;
     int rx_explicit = 0, overlay_explicit = 0, i;

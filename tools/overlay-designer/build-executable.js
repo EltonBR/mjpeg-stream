@@ -8,7 +8,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const root = path.resolve(__dirname, '../..');
-const output = path.join(root, 'overlay-designer');
+const output = path.join(root, 'dist', 'overlay-designer');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'overlay-designer-sea-'));
 const staged = path.join(root, `.overlay-designer-build-${process.pid}`);
 function run(command, args) {
@@ -17,6 +17,7 @@ function run(command, args) {
   if (result.status !== 0) throw new Error(`${command} falhou (${result.status})`);
 }
 try {
+  fs.mkdirSync(path.dirname(output), { recursive: true });
   if (process.platform !== 'linux') throw new Error('Empacotamento disponivel apenas no Linux');
   if (Number(process.versions.node.split('.')[0]) < 22) throw new Error('O empacotamento exige Node.js 22 ou superior');
   if (fs.existsSync(output)) throw new Error(`Ja existe ${output}; preserve ou remova o arquivo antes de gerar outro`);

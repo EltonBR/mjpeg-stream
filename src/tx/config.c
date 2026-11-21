@@ -94,7 +94,7 @@ static int tx_ini_handler(void *user, const char *section,
 void tx_usage(const char *argv0)
 {
     fprintf(stderr,
-            "Uso: %s [--config tx.ini] --device /dev/video0 --host 0.0.0.0|:: --port 5000 [--tcp|--udp|--http]\n"
+            "Uso: %s [--config config/tx.ini] --device /dev/video0 --host 0.0.0.0|:: --port 5000 [--tcp|--udp|--http]\n"
             "       [--width 640 --height 480 --fps 30 --quality 80]\n"
             "       [--allow all|IP|IP-IP|IP/CIDR] ... aceita IPv4 e IPv6 literais\n"
             "       --http expoe MJPEG compativel com navegador em http://host:port/\n"
@@ -105,7 +105,7 @@ void tx_usage(const char *argv0)
 int tx_parse_args(int argc, char **argv, struct config *cfg)
 {
     int i;
-    const char *config_path = "tx.ini";
+    const char *config_path = "config/tx.ini";
     int config_explicit = 0;
 
     if (tx_defaults(cfg) < 0) {

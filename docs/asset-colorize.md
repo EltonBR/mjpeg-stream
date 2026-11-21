@@ -11,15 +11,15 @@ make asset_colorize
 ## Uso
 
 ```sh
-./asset_colorize --color amber input.png output.png
-./asset_colorize --color green input.png output.png
-./asset_colorize --color '#00ccff' input.png output.png
+./dist/asset_colorize --color amber input.png output.png
+./dist/asset_colorize --color green input.png output.png
+./dist/asset_colorize --color '#00ccff' input.png output.png
 ```
 
 ## Exemplo com crosshair
 
 ```sh
-./asset_colorize --color amber overlays/crosshair-original.png overlays/crosshair.png
+./dist/asset_colorize --color amber config/overlays/crosshair-original.png config/overlays/crosshair.png
 ```
 
 Depois use no overlay:

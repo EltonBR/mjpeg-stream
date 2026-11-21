@@ -110,10 +110,10 @@ static int rx_ini_handler(void *user, const char *section,
 void rx_usage(const char *argv0)
 {
     fprintf(stderr,
-            "Uso TCP: %s [--config rx.ini] --host 127.0.0.1|::1 --port 5000 --tcp\n"
+            "Uso TCP: %s [--config config/rx.ini] --host 127.0.0.1|::1 --port 5000 --tcp\n"
             "Uso UDP: %s --listen 0.0.0.0|:: --port 5000 --udp\n"
             "Eventos: --event-host 127.0.0.1|::1 --event-port 6000 [--joystick /dev/input/js0]\n"
-            "Overlay: [--overlay-config overlay.ini] [--overlay overlay.json] [--hud-color #rrggbb]\n"
+            "Overlay: [--overlay-config config/overlay.ini] [--overlay config/overlay.json] [--hud-color #rrggbb]\n"
             "Telemetria: [--telemetry-enabled --telemetry-host 127.0.0.1 --telemetry-port 7000]\n"
             "Janela: [--lock-aspect] [--zoom-in-key plus --zoom-out-key minus]\n", argv0, argv0);
 }
@@ -122,7 +122,7 @@ static int set_cli_string(char **p, const char *v) { return replace_string(p, v)
 
 int rx_parse_args(int argc, char **argv, struct rx_config *cfg)
 {
-    const char *config_path = "rx.ini";
+    const char *config_path = "config/rx.ini";
     int explicit_config = 0;
     int i;
     if (rx_defaults(cfg) < 0) return -1;

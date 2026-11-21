@@ -5,8 +5,8 @@ O receptor pode abrir um cliente TCP de telemetria. Cada linha recebida deve ser
 ## Ativar no receptor
 
 ```sh
-./mjpeg_rx --config rx.ini \
-  --overlay overlay.json \
+./dist/mjpeg_rx --config config/rx.ini \
+  --overlay config/overlay.json \
   --telemetry-enabled \
   --telemetry-host 127.0.0.1 \
   --telemetry-port 7000
@@ -68,4 +68,4 @@ Remove elemento basico por `id`.
 
 Ele envia `telemetry` em loop com data, hora, angulo, azimuth, heading, bateria e rotacao. O mesmo processo tambem abre um servidor TCP de eventos JSON Lines e imprime no console os eventos enviados pelo `mjpeg_rx`.
 
-A configuração independente fica em `overlay.ini`, seção `[telemetry]`. `reconnect_ms` controla o intervalo de reconexão. Mudanças de endpoint requerem reiniciar o RX. Um `set` pode ajustar propriedades comuns de widgets modernos pelo seu ID; os comandos legados continuam aceitos.
+A configuração independente fica em `config/overlay.ini`, seção `[telemetry]`. `reconnect_ms` controla o intervalo de reconexão. Mudanças de endpoint requerem reiniciar o RX. Um `set` pode ajustar propriedades comuns de widgets modernos pelo seu ID; os comandos legados continuam aceitos.

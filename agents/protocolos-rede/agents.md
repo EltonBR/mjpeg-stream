@@ -61,9 +61,9 @@ Responsavel pelos contratos de rede usados por transmissor e receptor: TCP binar
 
 ```sh
 make
-./mjpeg_tx --http --host 0.0.0.0 --port 8080
-./mjpeg_tx --tcp --host 0.0.0.0 --port 5000
-./mjpeg_rx --tcp --host 127.0.0.1 --port 5000
-./mjpeg_rx --udp --listen 0.0.0.0 --port 5000
-./mjpeg_tx --udp --host 127.0.0.1 --port 5000
+./dist/mjpeg_tx --http --host 0.0.0.0 --port 8080
+./dist/mjpeg_tx --tcp --host 0.0.0.0 --port 5000
+./dist/mjpeg_rx --tcp --host 127.0.0.1 --port 5000
+./dist/mjpeg_rx --udp --listen 0.0.0.0 --port 5000
+./dist/mjpeg_tx --udp --host 127.0.0.1 --port 5000
 ```

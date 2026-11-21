@@ -18,7 +18,7 @@ Responsavel pelo binario `v4l2_discover`, que lista capacidades, formatos, resol
 4. Enumera formatos com `VIDIOC_ENUM_FMT`.
 5. Para cada formato, enumera resolucoes com `VIDIOC_ENUM_FRAMESIZES`.
 6. Para cada resolucao discreta, enumera intervalos/FPS com `VIDIOC_ENUM_FRAMEINTERVALS`.
-7. Imprime dados em texto para ajudar a configurar `tx.ini`.
+7. Imprime dados em texto para ajudar a configurar `config/tx.ini`.
 
 ## Decisoes importantes
 
@@ -38,5 +38,5 @@ Responsavel pelo binario `v4l2_discover`, que lista capacidades, formatos, resol
 
 ```sh
 make v4l2_discover
-./v4l2_discover /dev/video0
+./dist/v4l2_discover /dev/video0
 ```

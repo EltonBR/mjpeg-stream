@@ -4,10 +4,10 @@
 
 ## Configuracao
 
-O transmissor carrega `tx.ini` automaticamente se existir.
+O transmissor carrega `config/tx.ini` automaticamente se existir.
 
 ```sh
-./mjpeg_tx --config tx.ini
+./dist/mjpeg_tx --config config/tx.ini
 ```
 
 Precedencia:
@@ -25,25 +25,25 @@ Precedencia:
 ## Uso rapido
 
 ```sh
-./mjpeg_tx --config tx.ini
+./dist/mjpeg_tx --config config/tx.ini
 ```
 
 HTTP:
 
 ```sh
-./mjpeg_tx --http --host 0.0.0.0 --port 8080
+./dist/mjpeg_tx --http --host 0.0.0.0 --port 8080
 ```
 
 TCP:
 
 ```sh
-./mjpeg_tx --tcp --host 0.0.0.0 --port 5000
+./dist/mjpeg_tx --tcp --host 0.0.0.0 --port 5000
 ```
 
 UDP:
 
 ```sh
-./mjpeg_tx --udp --host 127.0.0.1 --port 5000
+./dist/mjpeg_tx --udp --host 127.0.0.1 --port 5000
 ```
 
 ## Controle de acesso

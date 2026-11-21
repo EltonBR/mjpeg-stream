@@ -12,12 +12,12 @@ Responsavel pelo binario `mjpeg_tx`, que captura frames de uma camera V4L2 e tra
 - `src/tx/jpeg.c` e `src/tx/jpeg.h`: conversao YUYV para RGB e encode JPEG via libjpeg.
 - `src/tx/stream.c` e `src/tx/stream.h`: TCP, UDP, HTTP MJPEG, clientes e fragmentacao UDP.
 - `src/tx/access_control.c` e `src/tx/access_control.h`: regras `allow` para TCP/HTTP.
-- `tx.ini`: configuracao padrao do transmissor.
-- `start_transmitter.sh`: wrapper de inicializacao que usa `tx.ini` e nao sobrescreve parametros de runtime por CLI.
+- `config/tx.ini`: configuracao padrao do transmissor.
+- `start_transmitter.sh`: wrapper de inicializacao que usa `config/tx.ini` e nao sobrescreve parametros de runtime por CLI.
 
 ## Fluxo de execucao
 
-1. `tx_parse_args` aplica defaults, le `tx.ini` se existir e depois aplica argumentos CLI.
+1. `tx_parse_args` aplica defaults, le `config/tx.ini` se existir e depois aplica argumentos CLI.
 2. `camera_open` tenta configurar MJPEG nativo; se nao der, tenta RGB24 e YUYV.
 3. `stream_open` abre o destino UDP ou o servidor TCP/HTTP.
 4. O loop principal usa `select` para camera e socket de escuta.
@@ -48,13 +48,13 @@ Responsavel pelo binario `mjpeg_tx`, que captura frames de uma camera V4L2 e tra
 ```sh
 make clean
 make
-./v4l2_discover /dev/video0
-./mjpeg_tx --config tx.ini --http --port 8080
+./dist/v4l2_discover /dev/video0
+./dist/mjpeg_tx --config config/tx.ini --http --port 8080
 ```
 
 Para validar TCP local:
 
 ```sh
-./mjpeg_tx --tcp --host 0.0.0.0 --port 5000
-./mjpeg_rx --tcp --host 127.0.0.1 --port 5000
+./dist/mjpeg_tx --tcp --host 0.0.0.0 --port 5000
+./dist/mjpeg_rx --tcp --host 127.0.0.1 --port 5000
 ```

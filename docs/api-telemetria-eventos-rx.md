@@ -27,7 +27,7 @@ O RX aceita IP literal IPv4 ou IPv6 para os endpoints, como `127.0.0.1`, `192.16
 
 ## Configuração do RX
 
-Em `overlay.ini`, configure o **servidor externo** que receberá a conexão do cliente de telemetria do RX:
+Em `config/overlay.ini`, configure o **servidor externo** que receberá a conexão do cliente de telemetria do RX:
 
 ```ini
 [overlay]
@@ -42,7 +42,7 @@ port=7000
 reconnect_ms=1000
 ```
 
-Em `rx.ini`, configure o **outro servidor externo**, que receberá eventos do RX:
+Em `config/rx.ini`, configure o **outro servidor externo**, que receberá eventos do RX:
 
 ```ini
 [events]
@@ -53,9 +53,9 @@ joystick_enabled=false
 joystick=/dev/input/js0
 ```
 
-Os endereços acima indicam a própria máquina do RX. Se o serviço estiver em outro computador, use o IP **desse computador** e permita a porta na rede. `joystick_enabled=true` só é necessário para ler joystick Linux; eventos de teclado e mouse não dependem disso. As opções legadas de telemetria `--telemetry-enabled`, `--telemetry-host` e `--telemetry-port` continuam aceitas, assim como `--event-host`, `--event-port` e `--joystick`. `--config` seleciona `rx.ini`; `--overlay-config` seleciona `overlay.ini`. Veja [a configuração do receptor](receptor.md).
+Os endereços acima indicam a própria máquina do RX. Se o serviço estiver em outro computador, use o IP **desse computador** e permita a porta na rede. `joystick_enabled=true` só é necessário para ler joystick Linux; eventos de teclado e mouse não dependem disso. As opções legadas de telemetria `--telemetry-enabled`, `--telemetry-host` e `--telemetry-port` continuam aceitas, assim como `--event-host`, `--event-port` e `--joystick`. `--config` seleciona `config/rx.ini`; `--overlay-config` seleciona `config/overlay.ini`. Veja [a configuração do receptor](receptor.md).
 
-`reconnect_ms` configura o intervalo de nova tentativa do canal de telemetria, em milissegundos; o padrão é 1000. Alterações no endpoint de `overlay.ini` exigem reiniciar o RX. Quando o layout JSON é salvo, o RX tenta recarregá-lo sem reiniciar o vídeo. Isso não reconecta a telemetria nem modifica `overlay.ini`.
+`reconnect_ms` configura o intervalo de nova tentativa do canal de telemetria, em milissegundos; o padrão é 1000. Alterações no endpoint de `config/overlay.ini` exigem reiniciar o RX. Quando o layout JSON é salvo, o RX tenta recarregá-lo sem reiniciar o vídeo. Isso não reconecta a telemetria nem modifica `config/overlay.ini`.
 
 ## Canal servidor → RX: telemetria e comandos
 
@@ -69,7 +69,7 @@ O servidor deve fazer `bind`, `listen` e `accept`; após aceitar, escreve linhas
 
 Esses nomes são exemplos, não uma lista fixa. Qualquer campo plano com valor JSON numérico, string ou booleano pode ser utilizado em um template `{nome}`. Valores são armazenados como texto; booleanos tornam-se `true`/`false`. Campos `null`, objetos e arrays são ignorados. Enviar uma variável substitui seu valor anterior; campos omitidos mantêm seus valores. Uma chave desconhecida no template resulta em texto vazio. O nome reservado `type` seleciona a operação, não é armazenado como variável.
 
-Exemplos de bindings em `overlay.json`:
+Exemplos de bindings em `config/overlay.json`:
 
 ```json
 {"id":"az","type":"compass","x":0.5,"y":12,"azimuth":"{azimuth}"}
@@ -91,7 +91,7 @@ Aplique `set` a um elemento legado ou a um widget moderno já carregado. `id` di
 {"type":"set","id":"readout","items":[{"label":"BAT: ","value":"{battery} V"},{"label":"ANG: ","value":"{angle}"}]}
 ```
 
-Os IDs acima são exemplos; confira os IDs do seu `overlay.json`. `rotation` de **widget moderno** é string, inclusive para valor fixo como `"45"`; em **elemento legado** também pode ser número como `45`. Para trocar apenas valores exibidos por templates, prefira `telemetry`, sem enviar um `set` por frame.
+Os IDs acima são exemplos; confira os IDs do seu `config/overlay.json`. `rotation` de **widget moderno** é string, inclusive para valor fixo como `"45"`; em **elemento legado** também pode ser número como `45`. Para trocar apenas valores exibidos por templates, prefira `telemetry`, sem enviar um `set` por frame.
 
 | Propriedades de widget moderno | Tipo/validação |
 |---|---|
@@ -194,7 +194,7 @@ Em terminais separados, a partir da raiz do repositório:
 ```sh
 python3 examples/rx_telemetry_server.py --host 127.0.0.1 --port 7000 --interval 1
 python3 examples/rx_event_server.py --host 127.0.0.1 --port 6000
-./mjpeg_rx --config rx.ini --overlay-config overlay.ini
+./dist/mjpeg_rx --config config/rx.ini --overlay-config config/overlay.ini
 ```
 
 O RX precisa também de uma fonte de vídeo configurada. O servidor de telemetria pode opcionalmente executar `--set-demo crosshair`, desde que `crosshair` seja um ID existente no layout. Em produção, substitua a geração simulada pela fonte de dados e o `print` do receptor por um dispatcher que valide os campos relevantes. Os exemplos mantêm cada cliente isolado em uma thread e aceitam reconexões; eles não implementam segurança nem persistência.
@@ -214,11 +214,11 @@ Os canais não implementam TLS, autenticação nem autorização. Restrinja list
 
 | Sintoma | Verificação |
 |---|---|
-| `connect telemetria: Connection refused` | Há um servidor em escuta no IP/porta configurados em `overlay.ini`? Esse IP é alcançável a partir da máquina do RX? |
+| `connect telemetria: Connection refused` | Há um servidor em escuta no IP/porta configurados em `config/overlay.ini`? Esse IP é alcançável a partir da máquina do RX? |
 | Variáveis aparecem vazias | A linha tem `type=telemetry`, termina em `\n` e usa os mesmos nomes de `{variavel}` do layout? O JSON é válido e tem até 8191 bytes? |
 | `set` não muda nada | O ID existe? É elemento legado ou widget moderno? Os tipos e ranges das propriedades correspondem à tabela? Verifique `stderr`; não há ACK. |
 | Evento não chega | `events_enabled=true`, servidor em `event_host:event_port`, janela com foco para teclado e ponteiro sobre a área de imagem para mouse? A fila pode descartar sob pressão. |
-| Layout salvo não aparece | O RX usa o mesmo `overlay.ini`/layout salvo? O JSON é válido? Examine as mensagens de recarga no terminal. |
+| Layout salvo não aparece | O RX usa o mesmo `config/overlay.ini`/layout salvo? O JSON é válido? Examine as mensagens de recarga no terminal. |
 | Após trocar host/porta continua conexão antiga | Reinicie o RX; configurações de endpoint não são recarregadas em runtime. |
 
 Fontes de comportamento: [cliente de telemetria](../src/rx/telemetry.c), [store](../src/rx/telemetry_store.c), [comandos de overlay](../src/rx/overlay_json.c), [captura de eventos](../src/rx/input.c) e [fila de eventos](../src/rx/event_sender.c).

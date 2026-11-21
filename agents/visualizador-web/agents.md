@@ -13,7 +13,7 @@ Responsavel por `viewer.html`, uma pagina local para assistir ao stream HTTP MJP
 1. Iniciar transmissor em HTTP:
 
 ```sh
-./mjpeg_tx --http --host 0.0.0.0 --port 8080
+./dist/mjpeg_tx --http --host 0.0.0.0 --port 8080
 ```
 
 2. Abrir `viewer.html` no navegador.
@@ -39,7 +39,7 @@ Responsavel por `viewer.html`, uma pagina local para assistir ao stream HTTP MJP
 ## Verificacao recomendada
 
 ```sh
-./mjpeg_tx --http --host 0.0.0.0 --port 8080
+./dist/mjpeg_tx --http --host 0.0.0.0 --port 8080
 ```
 
 Depois abrir:

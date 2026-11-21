@@ -17,32 +17,32 @@ Em outra maquina ou terminal, apos configurar `dist/rx/rx.ini` com o IP do trans
 cd dist/rx
 ./iniciar-rx.sh
 # Em outro terminal, no mesmo diretorio:
-./overlay-designer
+./dist/overlay-designer
 ```
 
 O editor informa o endereco para abrir no navegador; nao precisa de Node nem `make` para executar. Cada pacote tem um `README.txt` com seu conteudo e dependencias. Estes binarios foram gerados para **Linux x86-64** e dependem de bibliotecas do sistema compativeis; nao sao executaveis para ARM.
 
-Para gerar uma nova distribuicao a partir dos binarios e configuracoes atuais, execute `python3 tools/build_dist.py` na raiz. O script nao substitui uma pasta `dist` existente: preserve ou mova a distribuicao anterior antes de executar novamente. `dist/` e um artefato local ignorado pelo Git.
+Para gerar uma nova distribuicao a partir dos binarios e configuracoes atuais, execute `python3 tools/build_dist.py` na raiz. O script cria `dist/tx` e `dist/rx` e nao substitui esses diretorios se ja existirem. `dist/` e um artefato local ignorado pelo Git.
 
 ## Editar o overlay: Overlay Designer
 
-O executavel Linux fica na raiz do projeto. Para iniciar, execute:
+O executavel Linux fica em `dist/`. Para iniciar, execute:
 
 ```sh
-./overlay-designer
+./dist/overlay-designer
 ```
 
 Ele inicia o servidor e mostra o endereco no terminal, normalmente **http://127.0.0.1:8081/**. Abra esse endereco no navegador e mantenha o terminal aberto; pressione `Ctrl+C` para encerrar. Nao e necessario usar `make`, instalar Node.js ou executar `npm install` para rodar o executavel.
 
-Por padrao, o programa usa `overlay.ini` do diretorio atual ou, se nao houver, o que estiver ao lado do executavel. Para escolher outro arquivo:
+Por padrao, o programa usa `config/overlay.ini` do diretorio atual ou, se nao houver, o que estiver ao lado do executavel. Para escolher outro arquivo:
 
 ```sh
-./overlay-designer --overlay-config /caminho/overlay.ini
+./dist/overlay-designer --overlay-config /caminho/config/overlay.ini
 ```
 
 O arquivo INI, o layout e os assets continuam externos e devem estar acessiveis para leitura e gravacao. O codigo-fonte esta em [`tools/overlay-designer/`](tools/overlay-designer/); o editor e separado de `viewer.html`, que apenas visualiza streams HTTP MJPEG. O executavel gerado nesta maquina e para Linux x86-64.
 
-No editor, selecione um widget na paleta ou em **Layers**, arraste e redimensione no canvas, ajuste suas propriedades e use **Salvar**. O arquivo padrao e `overlay.json`; imagens PNG sao armazenadas em `overlays/`. O painel de telemetria simula valores sem servidor. Para ver as alteracoes sobre video real, inicie o RX com o mesmo layout: ele monitora o arquivo e recarrega layouts validos sem interromper o video. Alteracoes no endpoint de telemetria ou na aparencia em `overlay.ini` exigem reiniciar o RX.
+No editor, selecione um widget na paleta ou em **Layers**, arraste e redimensione no canvas, ajuste suas propriedades e use **Salvar**. O arquivo padrao e `config/overlay.json`; imagens PNG sao armazenadas em `config/overlays/`. O painel de telemetria simula valores sem servidor. Para ver as alteracoes sobre video real, inicie o RX com o mesmo layout: ele monitora o arquivo e recarrega layouts validos sem interromper o video. Alteracoes no endpoint de telemetria ou na aparencia em `config/overlay.ini` exigem reiniciar o RX.
 
 O preview Canvas e uma aproximacao do desenho Cairo. Veja o [guia do Overlay Designer](docs/overlay-designer.md) para configuracao, seguranca e testes.
 
@@ -85,25 +85,25 @@ make static-tx
 
 ## Configuracao INI
 
-`mjpeg_tx` carrega `tx.ini` automaticamente se o arquivo existir. `mjpeg_rx` carrega `rx.ini` e procura `overlay.ini` no mesmo diretorio para as configuracoes de HUD e telemetria.
+`mjpeg_tx` carrega `config/tx.ini` automaticamente se o arquivo existir. `mjpeg_rx` carrega `config/rx.ini` e procura `config/overlay.ini` no mesmo diretorio para as configuracoes de HUD e telemetria.
 
 Tambem e possivel informar outro arquivo:
 
 ```sh
-./mjpeg_tx --config tx-lab.ini
-./mjpeg_rx --config rx-lab.ini --overlay-config overlay-lab.ini
+./dist/mjpeg_tx --config tx-lab.ini
+./dist/mjpeg_rx --config rx-lab.ini --overlay-config overlay-lab.ini
 ```
 
 Precedencia:
 
 1. defaults internos
-2. `rx.ini`, incluindo chaves legadas de overlay e telemetria
-3. `overlay.ini`
+2. `config/rx.ini`, incluindo chaves legadas de overlay e telemetria
+3. `config/overlay.ini`
 4. argumentos CLI
 
 Se `--config` for informado e o arquivo nao existir, o programa falha.
 
-### tx.ini
+### config/tx.ini
 
 ```ini
 [stream]
@@ -123,7 +123,7 @@ allow=::1
 allow=2001:db8::/32
 ```
 
-### rx.ini
+### config/rx.ini
 
 ```ini
 [stream]
@@ -149,7 +149,7 @@ joystick=/dev/input/js0
 
 ```
 
-### overlay.ini
+### config/overlay.ini
 
 ```ini
 [overlay]
@@ -174,7 +174,7 @@ host=127.0.0.1
 port=8081
 ```
 
-`layout` e `assets_dir` sao relativos ao diretorio de `overlay.ini`. Se o `overlay.ini` padrao estiver ausente, o RX aceita as configuracoes legadas do `rx.ini`; um arquivo passado explicitamente com `--overlay-config` deve existir. A opcao legada `--overlay arquivo.json` continua disponivel e exige que o arquivo exista. As opcoes de aparencia e telemetria pela CLI continuam tendo precedencia.
+`layout` e `assets_dir` sao relativos ao diretorio de `config/overlay.ini`. Se o `config/overlay.ini` padrao estiver ausente, o RX aceita as configuracoes legadas do `config/rx.ini`; um arquivo passado explicitamente com `--overlay-config` deve existir. A opcao legada `--overlay arquivo.json` continua disponivel e exige que o arquivo exista. As opcoes de aparencia e telemetria pela CLI continuam tendo precedencia.
 
 `zoom_in_key` e `zoom_out_key` usam nomes GDK e aceitam multiplas teclas separadas por virgula. As teclas de ajuste de dim ficam vazias por padrao; o slider da interface permanece disponivel.
 
@@ -183,13 +183,13 @@ port=8081
 Descobrir formatos da camera:
 
 ```sh
-./v4l2_discover /dev/video0
+./dist/v4l2_discover /dev/video0
 ```
 
 Transmissor HTTP MJPEG para navegador:
 
 ```sh
-./mjpeg_tx --config tx.ini --http --port 8080
+./dist/mjpeg_tx --config config/tx.ini --http --port 8080
 ```
 
 Abrir no navegador:
@@ -210,35 +210,35 @@ Ela permite configurar IP, porta, path e zoom.
 TCP binario com receptor GTK:
 
 ```sh
-./mjpeg_tx --tcp --host 0.0.0.0 --port 5000
-./mjpeg_rx --tcp --host 127.0.0.1 --port 5000
+./dist/mjpeg_tx --tcp --host 0.0.0.0 --port 5000
+./dist/mjpeg_rx --tcp --host 127.0.0.1 --port 5000
 ```
 
 Para manter a area da imagem sempre na proporcao do frame recebido:
 
 ```sh
-./mjpeg_rx --tcp --host 127.0.0.1 --port 5000 --lock-aspect
+./dist/mjpeg_rx --tcp --host 127.0.0.1 --port 5000 --lock-aspect
 ```
 
 TCP via IPv6:
 
 ```sh
-./mjpeg_tx --tcp --host :: --port 5000
-./mjpeg_rx --tcp --host ::1 --port 5000
+./dist/mjpeg_tx --tcp --host :: --port 5000
+./dist/mjpeg_rx --tcp --host ::1 --port 5000
 ```
 
 UDP:
 
 ```sh
-./mjpeg_rx --udp --listen 0.0.0.0 --port 5000
-./mjpeg_tx --udp --host 127.0.0.1 --port 5000
+./dist/mjpeg_rx --udp --listen 0.0.0.0 --port 5000
+./dist/mjpeg_tx --udp --host 127.0.0.1 --port 5000
 ```
 
 UDP via IPv6:
 
 ```sh
-./mjpeg_rx --udp --listen :: --port 5000
-./mjpeg_tx --udp --host ::1 --port 5000
+./dist/mjpeg_rx --udp --listen :: --port 5000
+./dist/mjpeg_tx --udp --host ::1 --port 5000
 ```
 
 Scripts:
@@ -275,13 +275,13 @@ Formatos:
 Via CLI:
 
 ```sh
-./mjpeg_tx --http --port 8080 \
+./dist/mjpeg_tx --http --port 8080 \
   --allow 192.168.0.10 \
   --allow 10.0.0.0/24 \
   --allow 2001:db8::/32
 ```
 
-Via script, configure as regras `allow` no `tx.ini` e execute `./start_transmitter.sh`.
+Via script, configure as regras `allow` no `config/tx.ini` e execute `./start_transmitter.sh`.
 
 ## Eventos do receptor
 
@@ -290,7 +290,7 @@ Quando configurado, o receptor envia eventos de teclado, mouse e joystick por TC
 CLI:
 
 ```sh
-./mjpeg_rx --tcp --host 127.0.0.1 --port 5000 \
+./dist/mjpeg_rx --tcp --host 127.0.0.1 --port 5000 \
   --event-host 127.0.0.1 --event-port 6000 \
   --joystick /dev/input/js0
 ```
@@ -320,17 +320,17 @@ O socket de eventos permanece ativo enquanto o receptor estiver aberto. Se a con
 
 ## Overlay/HUD do receptor
 
-`mjpeg_rx` pode desenhar overlays sobre o video usando `GtkDrawingArea` e Cairo. Sem `overlay.json`, o receptor continua exibindo apenas o video.
+`mjpeg_rx` pode desenhar overlays sobre o video usando `GtkDrawingArea` e Cairo. Sem `config/overlay.json`, o receptor continua exibindo apenas o video.
 
 CLI:
 
 ```sh
-./mjpeg_rx --tcp --host 127.0.0.1 --port 5000 \
-  --overlay overlay.json --hud-color amber \
+./dist/mjpeg_rx --tcp --host 127.0.0.1 --port 5000 \
+  --overlay config/overlay.json --hud-color amber \
   --telemetry-enabled --telemetry-host 127.0.0.1 --telemetry-port 7000
 ```
 
-Exemplo `overlay.json`:
+Exemplo `config/overlay.json`:
 
 ```json
 {
@@ -358,15 +358,15 @@ Elementos basicos continuam aceitos via `elements` para compatibilidade:
 
 Sem unidade explicita, coordenadas entre `0.0` e `1.0` sao relativas a area visivel do HUD; os demais valores sao pixels. Use `x_unit`, `y_unit`, `w_unit` e `h_unit` com `relative` ou `px` para explicitar cada unidade. O receptor renderiza o video em modo cover, preenchendo a janela com proporcao preservada e crop central quando necessario. O zoom aumenta esse crop; tamanhos em pixels dos itens do HUD continuam fixos. Anchors aceitos: `top-left`, `top-center`, `top-right`, `bottom-left`, `bottom-right`, `center`. Imagens PNG sao carregadas de `assets_dir`; paths absolutos e paths com `..` sao rejeitados.
 
-A cor global do HUD vem de `[appearance] hud_color` no `overlay.ini` ou de `--hud-color`. Labels e linhas usam essa cor. Imagens PNG sao carregadas como estao no arquivo; para pintar assets, use o binario separado `asset_colorize`.
+A cor global do HUD vem de `[appearance] hud_color` no `config/overlay.ini` ou de `--hud-color`. Labels e linhas usam essa cor. Imagens PNG sao carregadas como estao no arquivo; para pintar assets, use o binario separado `asset_colorize`.
 
 Colorir um PNG:
 
 ```sh
 make asset_colorize
-./asset_colorize --color amber overlays/crosshair-original.png overlays/crosshair.png
-./asset_colorize --color green overlays/crosshair-original.png overlays/crosshair.png
-./asset_colorize --color '#00ccff' overlays/crosshair-original.png overlays/crosshair.png
+./dist/asset_colorize --color amber config/overlays/crosshair-original.png config/overlays/crosshair.png
+./dist/asset_colorize --color green config/overlays/crosshair-original.png config/overlays/crosshair.png
+./dist/asset_colorize --color '#00ccff' config/overlays/crosshair-original.png config/overlays/crosshair.png
 ```
 
 O `asset_colorize` preserva alpha e usa os niveis de preto/branco do PNG para variar a intensidade da cor. Ele tambem tenta lidar com PNGs de linhas pretas ou brancas: quando o asset e quase todo escuro ou quase todo claro, a parte visivel recebe a cor cheia.

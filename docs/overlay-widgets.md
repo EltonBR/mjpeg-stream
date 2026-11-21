@@ -1,6 +1,6 @@
 # Overlay e Widgets HUD
 
-O overlay e configurado por `overlay.json`. Ele desenha HUD sobre o frame atual usando Cairo.
+O overlay e configurado por `config/overlay.json`. Ele desenha HUD sobre o frame atual usando Cairo.
 
 ## Estrutura
 
@@ -55,7 +55,7 @@ As variaveis sao atualizadas por mensagens JSON Lines de telemetria.
 
 ## Cor e fonte do HUD
 
-`hud_color` e `hud_font` vem do `rx.ini` ou de `--hud-color` / `--hud-font`.
+`hud_color` e `hud_font` vem do `config/rx.ini` ou de `--hud-color` / `--hud-font`.
 
 ```ini
 [overlay]
@@ -68,7 +68,7 @@ dim_alpha=0.20
 Ou:
 
 ```sh
-./mjpeg_rx --overlay overlay.json --hud-color amber --hud-font Monospace \
+./dist/mjpeg_rx --overlay config/overlay.json --hud-color amber --hud-font Monospace \
   --dim-color '#000000' --dim-alpha 0.20
 ```
 

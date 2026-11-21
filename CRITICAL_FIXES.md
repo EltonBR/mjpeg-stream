@@ -244,7 +244,7 @@ nc -l 6000 > eventos.log
 
 # Terminal 2: Receptor com joystick
 export LC_NUMERIC=C
-./mjpeg_rx --tcp --host 127.0.0.1 --port 5000 \
+./dist/mjpeg_rx --tcp --host 127.0.0.1 --port 5000 \
            --event-host 127.0.0.1 --event-port 6000 \
            --joystick /dev/input/js0
 

@@ -9,7 +9,7 @@ Responsavel pelas regras `allow` usadas pelo transmissor para aceitar ou rejeita
 - `src/tx/access_control.c` e `src/tx/access_control.h`: parser e avaliacao das regras.
 - `src/tx/config.c`: leitura de `allow` por INI e CLI.
 - `src/tx/stream.c`: aplica `access_control_allowed_sockaddr` em clientes aceitos por `accept`.
-- `tx.ini`: exemplos de regras.
+- `config/tx.ini`: exemplos de regras.
 - `README.md`: documentacao de formatos aceitos.
 
 ## Formatos aceitos
@@ -43,9 +43,9 @@ Responsavel pelas regras `allow` usadas pelo transmissor para aceitar ou rejeita
 
 ```sh
 make mjpeg_tx
-./mjpeg_tx --http --port 8080 --allow 127.0.0.1
-./mjpeg_tx --http --port 8080 --allow 10.0.0.0/24
-./mjpeg_tx --http --port 8080 --allow ::1
+./dist/mjpeg_tx --http --port 8080 --allow 127.0.0.1
+./dist/mjpeg_tx --http --port 8080 --allow 10.0.0.0/24
+./dist/mjpeg_tx --http --port 8080 --allow ::1
 ```
 
 Para testes automatizados futuros, o melhor alvo e extrair casos de `access_control_add` e `access_control_allowed_sockaddr` com enderecos IPv4, IPv6 e IPv4-mapped IPv6.

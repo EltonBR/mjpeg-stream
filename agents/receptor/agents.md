@@ -16,12 +16,12 @@ Responsavel pelo binario `mjpeg_rx`, que recebe frames JPEG por TCP ou UDP, exib
 - `src/rx/telemetry.c` e `src/rx/telemetry.h`: cliente TCP de telemetria JSON Lines e atualizacao do estado do HUD.
 - `src/rx/event_sender.c` e `src/rx/event_sender.h`: canal TCP de eventos e reconexao.
 - `src/rx/input.c` e `src/rx/input.h`: teclado, mouse e joystick Linux.
-- `rx.ini`: configuracao padrao do receptor.
-- `start_receiver.sh`: wrapper de inicializacao que usa `rx.ini` e nao sobrescreve parametros de runtime por CLI.
+- `config/rx.ini`: configuracao padrao do receptor.
+- `start_receiver.sh`: wrapper de inicializacao que usa `config/rx.ini` e nao sobrescreve parametros de runtime por CLI.
 
 ## Fluxo de execucao
 
-1. `rx_parse_args` aplica defaults, le `rx.ini` se existir e depois aplica CLI.
+1. `rx_parse_args` aplica defaults, le `config/rx.ini` se existir e depois aplica CLI.
 2. `rx_app_init` inicializa estado, `GByteArray`, zoom, lock de proporcao, overlay, telemetria e canal de eventos.
 3. `rx_connect` conecta no transmissor TCP ou faz bind UDP.
 4. Se eventos estiverem habilitados, `event_sender_start` inicia thread de reconexao.
@@ -44,7 +44,7 @@ Responsavel pelo binario `mjpeg_rx`, que recebe frames JPEG por TCP ou UDP, exib
 - O processo do RX deve manter `LC_NUMERIC=C`. `gtk_disable_setlocale()` precisa ser chamado antes de `gtk_init()` para evitar que GTK restaure uma locale com virgula decimal; JSON de eventos e numeros do HUD precisam usar `.`.
 - A camada `dim_color`/`dim_alpha` e desenhada em `overlay_draw` depois do video e antes de elementos/widgets do HUD. Padrao: preto com alpha `0.20`; `dim_alpha=0` desativa.
 - A toolbar do RX pode ajustar `dim_alpha` em runtime via slider. Esse ajuste nao persiste no INI; o valor inicial sempre vem de config/CLI.
-- Atalhos locais de zoom e `dim_alpha` vem de `rx.ini`/CLI por nomes GDK. `dim_alpha_up_key` e `dim_alpha_down_key` ficam vazios por padrao; quando configurados, use `dim_alpha_step`.
+- Atalhos locais de zoom e `dim_alpha` vem de `config/rx.ini`/CLI por nomes GDK. `dim_alpha_up_key` e `dim_alpha_down_key` ficam vazios por padrao; quando configurados, use `dim_alpha_step`.
 - Widgets `vertical_ruler` e `horizontal_ruler` compartilham a mesma implementacao em `src/rx/widgets/vertical_ruler/vertical_ruler_widget.c`. Mantenha parametros comuns como `value`, `min`, `max`, `window`, `major_step`, `minor_step`, `flip_horizontal` e `flip_vertical` consistentes entre os dois.
 - `--lock-aspect` e `lock_aspect=true` mantem a area da imagem na proporcao do frame recebido usando `gtk_window_set_geometry_hints` com o `GtkDrawingArea` como widget de geometria. Nao force resize dentro de `size-allocate`, porque isso briga com o window manager durante o arraste. Quando ativo, maximizar deve ficar desabilitado.
 - Eventos de teclado, mouse e joystick sao enviados como uma linha JSON por evento.
@@ -68,12 +68,12 @@ Responsavel pelo binario `mjpeg_rx`, que recebe frames JPEG por TCP ou UDP, exib
 
 ```sh
 make mjpeg_rx
-./mjpeg_rx --config rx.ini --tcp --host 127.0.0.1 --port 5000
+./dist/mjpeg_rx --config config/rx.ini --tcp --host 127.0.0.1 --port 5000
 ```
 
 Para eventos:
 
 ```sh
 nc -l 6000
-./mjpeg_rx --tcp --host 127.0.0.1 --port 5000 --event-host 127.0.0.1 --event-port 6000
+./dist/mjpeg_rx --tcp --host 127.0.0.1 --port 5000 --event-host 127.0.0.1 --event-port 6000
 ```

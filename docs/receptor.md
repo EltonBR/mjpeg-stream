@@ -4,16 +4,16 @@
 
 ## Configuracao
 
-O receptor carrega `rx.ini` automaticamente se existir.
+O receptor carrega `config/rx.ini` automaticamente se existir.
 
 ```sh
-./mjpeg_rx --config rx.ini
+./dist/mjpeg_rx --config config/rx.ini
 ```
 
 ## Uso TCP
 
 ```sh
-./mjpeg_rx --tcp --host 127.0.0.1 --port 5000
+./dist/mjpeg_rx --tcp --host 127.0.0.1 --port 5000
 ```
 
 ## Janela
@@ -21,10 +21,10 @@ O receptor carrega `rx.ini` automaticamente se existir.
 Use `--lock-aspect` para manter a area da imagem na proporcao do frame recebido:
 
 ```sh
-./mjpeg_rx --tcp --host 127.0.0.1 --port 5000 --lock-aspect
+./dist/mjpeg_rx --tcp --host 127.0.0.1 --port 5000 --lock-aspect
 ```
 
-No `rx.ini`:
+No `config/rx.ini`:
 
 ```ini
 [window]
@@ -43,20 +43,20 @@ A proporcao e aplicada ao `GtkDrawingArea` por hints de geometria do GTK, compen
 ## Uso UDP
 
 ```sh
-./mjpeg_rx --udp --listen 0.0.0.0 --port 5000
+./dist/mjpeg_rx --udp --listen 0.0.0.0 --port 5000
 ```
 
 ## Overlay
 
 ```sh
-./mjpeg_rx --config rx.ini --overlay overlay.json
+./dist/mjpeg_rx --config config/rx.ini --overlay config/overlay.json
 ```
 
 Com telemetria:
 
 ```sh
-./mjpeg_rx --config rx.ini \
-  --overlay overlay.json \
+./dist/mjpeg_rx --config config/rx.ini \
+  --overlay config/overlay.json \
   --telemetry-enabled \
   --telemetry-host 127.0.0.1 \
   --telemetry-port 7000
@@ -67,7 +67,7 @@ Com telemetria:
 O receptor pode enviar eventos de teclado, mouse e joystick para um servidor TCP em JSON Lines.
 
 ```sh
-./mjpeg_rx --tcp --host 127.0.0.1 --port 5000 \
+./dist/mjpeg_rx --tcp --host 127.0.0.1 --port 5000 \
   --event-host 127.0.0.1 --event-port 6000 \
   --joystick /dev/input/js0
 ```
@@ -78,6 +78,6 @@ Eventos de pressionamento usam pares `down/up` e um evento `press` no release: t
 
 ## Controle de Dim
 
-A toolbar do receptor tem um slider `Dim` para ajustar `dim_alpha` em runtime. O valor inicial vem do `rx.ini`; ajustes pela UI nao alteram o arquivo. `dim_alpha_step` define o passo usado apenas quando atalhos de alpha estiverem configurados.
+A toolbar do receptor tem um slider `Dim` para ajustar `dim_alpha` em runtime. O valor inicial vem do `config/rx.ini`; ajustes pela UI nao alteram o arquivo. `dim_alpha_step` define o passo usado apenas quando atalhos de alpha estiverem configurados.
 
-O RX aceita `--overlay-config arquivo.ini`. Sem essa opção, procura `overlay.ini` ao lado do arquivo indicado por `--config`; na ausência do arquivo padrão, aceita os campos legados de overlay e telemetria em `rx.ini`. Opções CLI têm precedência. O layout monitorado é recarregado sem reiniciar o vídeo; configuração de telemetria exige reinício.
+O RX aceita `--overlay-config arquivo.ini`. Sem essa opção, procura `config/overlay.ini` ao lado do arquivo indicado por `--config`; na ausência do arquivo padrão, aceita os campos legados de overlay e telemetria em `config/rx.ini`. Opções CLI têm precedência. O layout monitorado é recarregado sem reiniciar o vídeo; configuração de telemetria exige reinício.

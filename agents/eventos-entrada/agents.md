@@ -10,8 +10,8 @@ Responsavel por capturar teclado, mouse e joystick no receptor GTK e enviar even
 - `src/rx/input.c` e `src/rx/input.h`: captura de teclado, mouse e joystick.
 - `src/rx/main.c`: ativa eventos conforme configuracao.
 - `src/rx/app.c` e `src/rx/app.h`: estado do sender, thread de joystick e cleanup.
-- `rx.ini`: configuracao de `events_enabled`, `event_host`, `event_port`, `joystick_enabled` e `joystick`.
-- `start_receiver.sh`: inicia com `rx.ini`; eventos e joystick devem ser configurados no INI.
+- `config/rx.ini`: configuracao de `events_enabled`, `event_host`, `event_port`, `joystick_enabled` e `joystick`.
+- `start_receiver.sh`: inicia com `config/rx.ini`; eventos e joystick devem ser configurados no INI.
 
 ## Contrato de eventos
 
@@ -67,11 +67,11 @@ Responsavel por capturar teclado, mouse e joystick no receptor GTK e enviar even
 
 ```sh
 nc -l 6000
-./mjpeg_rx --tcp --host 127.0.0.1 --port 5000 --event-host 127.0.0.1 --event-port 6000
+./dist/mjpeg_rx --tcp --host 127.0.0.1 --port 5000 --event-host 127.0.0.1 --event-port 6000
 ```
 
 Com joystick:
 
 ```sh
-./mjpeg_rx --tcp --host 127.0.0.1 --port 5000 --event-host 127.0.0.1 --event-port 6000 --joystick /dev/input/js0
+./dist/mjpeg_rx --tcp --host 127.0.0.1 --port 5000 --event-host 127.0.0.1 --event-port 6000 --joystick /dev/input/js0
 ```

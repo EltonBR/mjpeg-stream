@@ -54,9 +54,9 @@ make clean
 make
 ```
 
-Para mudancas no parser INI, teste com `tx.ini` e `rx.ini` reais:
+Para mudancas no parser INI, teste com `config/tx.ini` e `config/rx.ini` reais:
 
 ```sh
-./mjpeg_tx --config tx.ini --help
-./mjpeg_rx --config rx.ini --help
+./dist/mjpeg_tx --config config/tx.ini --help
+./dist/mjpeg_rx --config config/rx.ini --help
 ```

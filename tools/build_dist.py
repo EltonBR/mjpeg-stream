@@ -43,15 +43,16 @@ exec "$HERE/{binary}" --config "${{CONFIG:-$HERE/{config}}}" "$@"
 
 
 def build():
-    if DIST.exists() or DIST.is_symlink():
-        raise FileExistsError(f'{DIST} ja existe; preserve ou mova a distribuicao atual antes de gerar outra')
+    destinations = [DIST / 'tx', DIST / 'rx']
+    if any(path.exists() or path.is_symlink() for path in destinations):
+        raise FileExistsError(f'{DIST}/tx ou {DIST}/rx ja existe; preserve ou mova a distribuicao atual antes de gerar outra')
     ini = configparser.ConfigParser(interpolation=None)
-    with (ROOT / 'overlay.ini').open(encoding='utf-8') as source:
+    with (ROOT / 'config/overlay.ini').open(encoding='utf-8') as source:
         ini.read_file(source)
     layout_rel = ini.get('overlay', 'layout', fallback='overlay.json')
     assets_rel = ini.get('overlay', 'assets_dir', fallback='overlays')
-    layout_path = project_file(layout_rel, '.json')
-    assets_path = project_file(assets_rel)
+    layout_path = project_file(Path('config') / layout_rel, '.json')
+    assets_path = project_file(Path('config') / assets_rel)
     document = json.loads(layout_path.read_text(encoding='utf-8'))
     if not isinstance(document, dict):
         raise ValueError('o layout do overlay deve ser um objeto JSON')
@@ -61,26 +62,31 @@ def build():
             name = item.get('file')
             if not isinstance(name, str) or not name or '..' in name or Path(name).is_absolute():
                 raise ValueError(f'caminho de imagem invalido: {name!r}')
-            refs.append(Path(assets_rel) / name)
+            refs.append(Path('config') / assets_rel / name)
     if not assets_path.is_dir():
         raise FileNotFoundError(f'diretorio de assets ausente: {assets_path}')
     with tempfile.TemporaryDirectory(prefix='.dist-build-', dir=ROOT) as temporary:
         stage = Path(temporary)
         tx, rx = stage / 'tx', stage / 'rx'
         tx.mkdir(); rx.mkdir()
-        for name in ['mjpeg_tx', 'tx.ini', 'v4l2_discover', 'viewer.html']:
-            copy_file(ROOT / name, tx / name)
-        for name in ['mjpeg_rx', 'overlay-designer', 'rx.ini', 'overlay.ini', 'asset_colorize']:
-            copy_file(ROOT / name, rx / name)
+        for name in ['mjpeg_tx', 'v4l2_discover']:
+            copy_file(ROOT / 'dist' / name, tx / name)
+        for name in ['tx.ini']:
+            copy_file(ROOT / 'config' / name, tx / name)
+        copy_file(ROOT / 'viewer.html', tx / 'viewer.html')
+        for name in ['mjpeg_rx', 'asset_colorize', 'overlay-designer']:
+            copy_file(ROOT / 'dist' / name, rx / name)
+        for name in ['rx.ini', 'overlay.ini']:
+            copy_file(ROOT / 'config' / name, rx / name)
         copy_file(layout_path, rx / layout_rel)
         (rx / assets_rel).mkdir(parents=True, exist_ok=True)
         for relative in refs:
-            copy_file(project_file(relative), rx / relative)
+            copy_file(project_file(relative), rx / assets_rel / relative.name)
         # PNGs adicionais sao uteis no editor; arquivos pessoais de outros tipos nao sao incluidos.
         for image in assets_path.rglob('*'):
             if image.is_file() and image.suffix.lower() == '.png':
-                relative = image.relative_to(ROOT)
-                copy_file(project_file(relative), rx / relative)
+                relative = image.relative_to(ROOT / 'config')
+                copy_file(project_file(Path('config') / relative), rx / Path(assets_rel) / relative.name)
         for name in ['rx_telemetry_server.py', 'rx_event_server.py']:
             copy_file(ROOT / 'examples' / name, rx / 'examples' / name)
         copy_file(ROOT / 'docs/receptor.md', rx / 'docs/receptor.md')
@@ -116,9 +122,11 @@ O receptor exige ambiente grafico, GTK 3, GdkPixbuf, GLib, Cairo e json-c
 compativeis. O editor inclui Node e interface, mas depende das bibliotecas
 basicas do sistema. Os executaveis foram compilados para o sistema de origem.
 ''', encoding='utf-8')
-        # Renomeia a pasta temporaria pronta sem substituir um destino existente.
-        os.rename(stage, DIST)
-    print(f'Distribuicao criada: {DIST}')
+        # Adiciona os pacotes sem substituir os binarios compilados em dist/.
+        DIST.mkdir(exist_ok=True)
+        os.rename(tx, DIST / 'tx')
+        os.rename(rx, DIST / 'rx')
+    print(f'Distribuicao criada: {DIST}/tx e {DIST}/rx')
 
 
 if __name__ == '__main__':

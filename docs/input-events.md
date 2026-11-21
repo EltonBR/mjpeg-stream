@@ -6,7 +6,7 @@ A especificação dos campos, tipos, coordenadas, fila, reconexão, perda e segu
 
 ## Ativação
 
-Em `rx.ini`:
+Em `config/rx.ini`:
 
 ```ini
 [events]
@@ -23,6 +23,6 @@ Para observar eventos localmente:
 python3 examples/rx_event_server.py --host 127.0.0.1 --port 6000
 ```
 
-Inicie o RX com uma fonte de vídeo válida, mantenha a janela com foco para teclado e mova ou clique sobre a área de imagem para mouse. O servidor exemplo imprime os objetos recebidos. Para configurar telemetria, consulte `[telemetry]` em `overlay.ini` e a especificação vinculada acima.
+Inicie o RX com uma fonte de vídeo válida, mantenha a janela com foco para teclado e mova ou clique sobre a área de imagem para mouse. O servidor exemplo imprime os objetos recebidos. Para configurar telemetria, consulte `[telemetry]` em `config/overlay.ini` e a especificação vinculada acima.
 
 A fila do RX é limitada e pode descartar eventos sob saturação ou em falha de envio; não há confirmação de processamento. Serviços que usam eventos para controle precisam lidar com desconexão e perda de eventos de liberação.

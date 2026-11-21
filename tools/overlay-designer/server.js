@@ -274,9 +274,10 @@ async function atomicWrite(target, content) {
 }
 
 function loadOptions(argv) {
-  let iniPath = path.resolve('overlay.ini');
+  let iniPath = path.resolve('config/overlay.ini');
   if (isSingleExecutable && !fs.existsSync(iniPath)) {
-    iniPath = path.join(path.dirname(process.execPath), 'overlay.ini');
+    iniPath = path.join(path.dirname(process.execPath), 'config/overlay.ini');
+    if (!fs.existsSync(iniPath)) iniPath = path.join(path.dirname(process.execPath), 'overlay.ini');
   }
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === '--overlay-config' && argv[i + 1]) iniPath = path.resolve(argv[++i]);

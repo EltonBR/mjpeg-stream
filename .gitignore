@@ -14,7 +14,6 @@ mjpeg_tx
 mjpeg_rx
 v4l2_discover
 asset_colorize
-/overlay-designer
 /dist/
 
 # Debug/profiling artifacts
@@ -35,3 +34,10 @@ vgcore.*
 *.swp
 *.swo
 .DS_Store
+
+# Generated binaries are kept under dist/
+/dist/mjpeg_tx
+/dist/mjpeg_rx
+/dist/v4l2_discover
+/dist/asset_colorize
+/dist/overlay-designer

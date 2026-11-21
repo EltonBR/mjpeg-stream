@@ -8,8 +8,8 @@ Responsavel por build, dependencias, arquivos INI e scripts de inicializacao.
 
 - `Makefile`: alvos `all`, `mjpeg_tx`, `mjpeg_rx`, `v4l2_discover`, `static-tx` e `clean`.
 - `install-deps.sh`: instalacao de dependencias do sistema.
-- `tx.ini`: configuracao do transmissor.
-- `rx.ini`: configuracao do receptor.
+- `config/tx.ini`: configuracao do transmissor.
+- `config/rx.ini`: configuracao do receptor.
 - `start_transmitter.sh`: wrapper do transmissor.
 - `start_receiver.sh`: wrapper do receptor.
 - `.github/workflows/c-cpp.yml`: CI de build C/C++.
@@ -31,19 +31,19 @@ Precedencia nos binarios:
 2. arquivo `.ini`
 3. argumentos CLI
 
-`--config` explicito falha se o arquivo nao existir. Sem `--config`, os binarios tentam carregar `tx.ini` ou `rx.ini` se estiverem presentes.
+`--config` explicito falha se o arquivo nao existir. Sem `--config`, os binarios tentam carregar `config/tx.ini` ou `config/rx.ini` se estiverem presentes.
 
 ## Scripts
 
 `start_transmitter.sh`:
 
-- Usa `CONFIG=tx.ini` por padrao.
+- Usa `CONFIG=config/tx.ini` por padrao.
 - Compila `mjpeg_tx` se o binario nao existir.
 - Nao aceita overrides de runtime por variavel de ambiente; edite o INI.
 
 `start_receiver.sh`:
 
-- Usa `CONFIG=rx.ini` por padrao.
+- Usa `CONFIG=config/rx.ini` por padrao.
 - Compila `mjpeg_rx` se o binario nao existir.
 - Nao aceita overrides de runtime por variavel de ambiente; edite o INI.
 
@@ -51,7 +51,7 @@ Precedencia nos binarios:
 
 - Inicia telemetria/eventos Node.js, `mjpeg_tx` e `mjpeg_rx`.
 - Usa `TX_CONFIG` e `RX_CONFIG` apenas para escolher arquivos INI.
-- Le `telemetry_host`, `telemetry_port`, `event_host` e `event_port` do `rx.ini` para iniciar o servidor Node.
+- Le `telemetry_host`, `telemetry_port`, `event_host` e `event_port` do `config/rx.ini` para iniciar o servidor Node.
 - Nao passa parametros de runtime para `mjpeg_tx` ou `mjpeg_rx`; os INIs tem prioridade.
 - `ASSET_COLOR` e permitido apenas para pre-processar PNG com `asset_colorize`, nao para configurar o HUD em runtime.
 

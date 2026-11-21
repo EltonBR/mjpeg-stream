@@ -1,13 +1,13 @@
 #!/bin/sh
 set -eu
 
-TX_CONFIG="${TX_CONFIG:-tx.ini}"
-RX_CONFIG="${RX_CONFIG:-rx.ini}"
+TX_CONFIG="${TX_CONFIG:-config/tx.ini}"
+RX_CONFIG="${RX_CONFIG:-config/rx.ini}"
 OVERLAY_CONFIG="${OVERLAY_CONFIG:-$(dirname "$RX_CONFIG")/overlay.ini}"
 TELEMETRY_INTERVAL="${TELEMETRY_INTERVAL:-0.1}"
 
-HUD_ASSET_SRC="${HUD_ASSET_SRC:-overlays/crosshair.png}"
-HUD_ASSET_OUT="${HUD_ASSET_OUT:-overlays/crosshair.png}"
+HUD_ASSET_SRC="${HUD_ASSET_SRC:-config/overlays/crosshair.png}"
+HUD_ASSET_OUT="${HUD_ASSET_OUT:-config/overlays/crosshair.png}"
 
 telemetry_pid=""
 tx_pid=""
@@ -85,8 +85,8 @@ TELEMETRY_PORT="$(ini_value telemetry port "$(ini_value telemetry telemetry_port
 EVENT_HOST="$(ini_value events event_host 127.0.0.1)"
 EVENT_PORT="$(ini_value events event_port 6000)"
 
-if [ ! -f overlays/crosshair.png ]; then
-    echo "asset nao encontrado: overlays/crosshair.png" >&2
+if [ ! -f config/overlays/crosshair.png ]; then
+	    echo "asset nao encontrado: config/overlays/crosshair.png" >&2
     exit 1
 fi
 
@@ -103,7 +103,7 @@ if [ "${ASSET_COLOR+x}" ] && [ -n "$ASSET_COLOR" ]; then
         exit 1
     fi
     echo "colorindo asset ${HUD_ASSET_SRC} -> ${HUD_ASSET_OUT} com ${ASSET_COLOR}"
-    ./asset_colorize --color "$ASSET_COLOR" "$HUD_ASSET_SRC" "$HUD_ASSET_OUT"
+    ./dist/asset_colorize --color "$ASSET_COLOR" "$HUD_ASSET_SRC" "$HUD_ASSET_OUT"
 fi
 
 echo "iniciando telemetria em ${TELEMETRY_HOST}:${TELEMETRY_PORT} e eventos em ${EVENT_HOST}:${EVENT_PORT}"
@@ -118,7 +118,7 @@ telemetry_pid="$!"
 sleep 1
 
 echo "iniciando transmissor com config ${TX_CONFIG}"
-./mjpeg_tx --config "$TX_CONFIG" &
+./dist/mjpeg_tx --config "$TX_CONFIG" &
 tx_pid="$!"
 
 sleep 2
@@ -130,7 +130,7 @@ fi
 
 echo "abrindo receptor com config ${RX_CONFIG}"
 if [ -f "$OVERLAY_CONFIG" ]; then
-    ./mjpeg_rx --config "$RX_CONFIG" --overlay-config "$OVERLAY_CONFIG"
+    ./dist/mjpeg_rx --config "$RX_CONFIG" --overlay-config "$OVERLAY_CONFIG"
 else
-    ./mjpeg_rx --config "$RX_CONFIG"
+    ./dist/mjpeg_rx --config "$RX_CONFIG"
 fi

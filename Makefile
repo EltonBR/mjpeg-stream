@@ -14,6 +14,7 @@ MATH_LIBS ?= -lm
 TEST_CFLAGS = -UNDEBUG
 
 BUILD_DIR = build
+DIST_DIR = dist
 COMMON_OBJS = $(BUILD_DIR)/common/net.o $(BUILD_DIR)/common/ini.o
 TX_OBJS = \
 	$(BUILD_DIR)/tx/main.o \
@@ -52,27 +53,37 @@ ASSET_COLORIZE_OBJS = $(BUILD_DIR)/tools/asset_colorize.o
 
 -include $(sort $(TX_OBJS:.o=.d) $(RX_OBJS:.o=.d) $(DISCOVER_OBJS:.o=.d) $(ASSET_COLORIZE_OBJS:.o=.d))
 
-.PHONY: all clean static-tx test overlay-designer
+.PHONY: all clean static-tx test overlay-designer mjpeg_tx mjpeg_rx v4l2_discover asset_colorize
 
-all: mjpeg_tx mjpeg_rx v4l2_discover asset_colorize
+all: $(DIST_DIR)/mjpeg_tx $(DIST_DIR)/mjpeg_rx $(DIST_DIR)/v4l2_discover $(DIST_DIR)/asset_colorize
+
+mjpeg_tx: $(DIST_DIR)/mjpeg_tx
+mjpeg_rx: $(DIST_DIR)/mjpeg_rx
+v4l2_discover: $(DIST_DIR)/v4l2_discover
+asset_colorize: $(DIST_DIR)/asset_colorize
 
 overlay-designer:
-	node tools/overlay-designer/server.js --overlay-config overlay.ini
+	node tools/overlay-designer/server.js --overlay-config config/overlay.ini
 
-mjpeg_tx: $(TX_OBJS)
+$(DIST_DIR)/mjpeg_tx: $(TX_OBJS)
+	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(JPEG_LIBS)
 
-mjpeg_rx: $(RX_OBJS)
+$(DIST_DIR)/mjpeg_rx: $(RX_OBJS)
+	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(GTK_LIBS) $(JSON_LIBS) $(MATH_LIBS)
 
-v4l2_discover: $(DISCOVER_OBJS)
+$(DIST_DIR)/v4l2_discover: $(DISCOVER_OBJS)
+	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^
 
-asset_colorize: $(ASSET_COLORIZE_OBJS)
+$(DIST_DIR)/asset_colorize: $(ASSET_COLORIZE_OBJS)
+	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(GTK_LIBS)
 
 static-tx: $(TX_OBJS)
-	$(CC) $(CFLAGS) -static -o mjpeg_tx $^ $(JPEG_LIBS)
+	mkdir -p $(DIST_DIR)
+	$(CC) $(CFLAGS) -static -o $(DIST_DIR)/mjpeg_tx $^ $(JPEG_LIBS)
 
 $(BUILD_DIR)/tests/test_access_control: tests/test_access_control.c src/tx/access_control.c src/tx/access_control.h
 	mkdir -p $(dir $@)
@@ -276,4 +287,4 @@ $(BUILD_DIR)/common/ini.o: src/common/ini.c src/common/ini.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -rf mjpeg_tx mjpeg_rx v4l2_discover asset_colorize $(BUILD_DIR) src/*.o
+	rm -rf $(DIST_DIR)/mjpeg_tx $(DIST_DIR)/mjpeg_rx $(DIST_DIR)/v4l2_discover $(DIST_DIR)/asset_colorize $(BUILD_DIR) src/*.o
